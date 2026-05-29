@@ -181,7 +181,7 @@ export default function MinisterTimer() {
               </div>
               {isActive && (
                 <div className="minister-remaining">
-                  {secondsLeft > 0 ? `${fmt(secondsLeft)} remaining` : 'Time's up — well done'}
+                  {secondsLeft > 0 ? `${fmt(secondsLeft)} remaining` : "Time's up — well done"}
                 </div>
               )}
             </>
