@@ -104,7 +104,7 @@ export default function BaseCamp() {
       {/* Header */}
       <div className="camp-header">
         <div>
-          <div className="section-label">BASE CAMP</div>
+          <div className="section-label">Your camp</div>
           <div className="camp-location-name">{loc.name}</div>
           <div className="camp-location-sub">{loc.subtitle}</div>
         </div>
@@ -116,7 +116,7 @@ export default function BaseCamp() {
           )}
           {daysLeft === 0 && (
             <button className="btn-primary camp-transition-btn" onClick={() => setShowTransition(true)}>
-              30 days ✦
+              A month has passed ✦
             </button>
           )}
         </div>
@@ -168,7 +168,7 @@ export default function BaseCamp() {
           {/* Unplaced items tray */}
           {unplaced.length > 0 && (
             <div className="item-tray">
-              <div className="tray-label">Drag to place</div>
+              <div className="tray-label">Place in your camp</div>
               <div className="tray-items">
                 {unplaced.map(id => (
                   <div
@@ -184,7 +184,7 @@ export default function BaseCamp() {
             </div>
           )}
 
-          <div className="camp-tap-hint">Tap a placed item to remove it · Drag from tray to place</div>
+          <div className="camp-tap-hint">Tap a placed item to remove · drag from below to place</div>
         </div>
       )}
 

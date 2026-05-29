@@ -20,10 +20,10 @@ export default function LocationPicker({ onSelect, isTransition = false, current
         </div>
         <div className="lc-landscape">{loc.landscape}</div>
         <button className="btn-primary lc-btn" onClick={() => onSelect(selected)}>
-          Begin your new life
+          Let's go 🌿
         </button>
         <button className="btn-ghost lc-btn-back" onClick={() => setConfirmed(false)}>
-          ← Choose differently
+          ← Actually...
         </button>
       </div>
     );
@@ -33,19 +33,19 @@ export default function LocationPicker({ onSelect, isTransition = false, current
     <div className="location-picker">
       {isTransition ? (
         <>
-          <div className="lp-title">30 days have passed.</div>
-          <div className="lp-sub">Your camp has become familiar. Do you want to stay, or is it time to find a new place?</div>
+          <div className="lp-title">A month has passed.</div>
+          <div className="lp-sub">Your camp feels like home now. Stay a little longer, or is somewhere new calling you?</div>
           {currentLocation && (
             <button className="btn-ghost lp-stay" onClick={() => onSelect(currentLocation)}>
               Stay in {LOCATION_LIST.find(l => l.id === currentLocation)?.name}
             </button>
           )}
-          <div className="lp-divider">or choose somewhere new</div>
+          <div className="lp-divider">or wander somewhere new</div>
         </>
       ) : (
         <>
-          <div className="lp-title">Where will you build your life?</div>
-          <div className="lp-sub">Choose a place to call home. You'll spend 30 days here, living off the land.</div>
+          <div className="lp-title">Where would you like to live?</div>
+          <div className="lp-sub">Pick a place that calls to you. You'll spend 30 days living gently off the land.</div>
         </>
       )}
 

@@ -71,7 +71,7 @@ export default function ServerAge() {
             ))}
           </div>
 
-          <div className="server-tap-hint">Tap for full timeline ›</div>
+          <div className="server-tap-hint">Tap to see what's coming ›</div>
         </div>
       </div>
 
@@ -80,13 +80,13 @@ export default function ServerAge() {
           <div className="drawer" onClick={e => e.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <div className="drawer-title">State Timeline</div>
+                <div className="drawer-title">Your server's story</div>
                 <div className="drawer-sub">Server #3543 · Day {dayAge}</div>
               </div>
               <button className="btn-ghost" onClick={() => setOpen(false)}>✕</button>
             </div>
 
-            <div className="drawer-section-label">Upcoming Milestones</div>
+            <div className="drawer-section-label">Coming up</div>
             <div className="milestone-list">
               {visibleUpcoming.map((m, i) => (
                 <div key={m.day} className={`milestone-item ${i === 0 ? 'milestone-next' : ''}`}>
@@ -101,7 +101,7 @@ export default function ServerAge() {
             </div>
 
             <div className="drawer-show-more">
-              <label className="input-label">Show on card</label>
+              <label className="input-label">Milestones to show</label>
               <div className="show-more-btns">
                 {[1, 2, 3, 5].map(n => (
                   <button
@@ -115,7 +115,7 @@ export default function ServerAge() {
               </div>
             </div>
 
-            <div className="drawer-section-label" style={{ marginTop: '1.5rem' }}>Past Milestones</div>
+            <div className="drawer-section-label" style={{ marginTop: '1.5rem' }}>Already unlocked</div>
             <div className="milestone-list past-list">
               {[...past].reverse().map(m => (
                 <div key={m.day} className="milestone-item milestone-past">

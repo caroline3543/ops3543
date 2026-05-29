@@ -61,7 +61,7 @@ export default function AnimalCompanion({ animal, animalData, onName, onBuyItem,
           <div className="naming-prompt-text">{animalData.namingPrompt}</div>
           {!showNaming ? (
             <button className="btn-primary animal-name-btn" onClick={() => setShowNaming(true)}>
-              Give them a name
+              Give them a name 🌿
             </button>
           ) : (
             <div className="naming-form">
@@ -87,7 +87,7 @@ export default function AnimalCompanion({ animal, animalData, onName, onBuyItem,
       </div>
 
       <button className="btn-ghost animal-care-btn" onClick={() => setShowItems(!showItems)}>
-        {showItems ? 'Close care items ↑' : 'Care for them ↓'}
+        {showItems ? 'Close ↑' : 'How are they doing? ↓'}
       </button>
 
       {showItems && (

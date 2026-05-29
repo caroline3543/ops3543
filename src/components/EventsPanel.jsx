@@ -62,8 +62,8 @@ export default function EventsPanel({ onTasksAdded }) {
     <div className="events-panel">
       <div className="panel-header">
         <div>
-          <div className="section-label">LIVE OPERATIONS</div>
-          <div className="panel-title">Today's Events</div>
+          <div className="section-label">Today's adventures</div>
+          <div className="panel-title">What's on</div>
         </div>
         <button className="btn-icon" onClick={() => setShowAdd(!showAdd)}>+</button>
       </div>
@@ -114,7 +114,7 @@ export default function EventsPanel({ onTasksAdded }) {
           </div>
           {EVENT_TEMPLATES[form.name]?.tasks.length > 0 && (
             <div className="task-preview">
-              <div className="input-label">Auto-tasks to be added:</div>
+              <div className="input-label">These tasks will be added for you:</div>
               {EVENT_TEMPLATES[form.name].tasks.map((t, i) => (
                 <div key={i} className="task-preview-item">✓ {t.text}</div>
               ))}
@@ -129,7 +129,7 @@ export default function EventsPanel({ onTasksAdded }) {
 
       <div className="events-list">
         {events.length === 0 && (
-          <div className="empty-state">No events today. Tap + to add one.</div>
+          <div className="empty-state">Nothing planned yet — tap + to add something.</div>
         )}
         {events.map(ev => (
           <div key={ev.id} className="event-item" style={{ borderLeftColor: ev.color }}>
@@ -148,7 +148,7 @@ export default function EventsPanel({ onTasksAdded }) {
             {expandedId === ev.id && (
               <div className="event-actions">
                 <button className="btn-ghost btn-small danger" onClick={() => deleteEvent(ev.id)}>
-                  Delete Event
+                  Remove this event
                 </button>
               </div>
             )}

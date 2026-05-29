@@ -41,8 +41,8 @@ export default function UtcCountdown() {
         <div className="utc-label">
           <span className="utc-icon">↺</span>
           <div>
-            <div className="utc-title">UTC RESET</div>
-            <div className="utc-sub">Board refreshes at 00:00 UTC</div>
+            <div className="utc-title">Daily reset</div>
+            <div className="utc-sub">Resets at midnight UTC</div>
           </div>
         </div>
         <div className="utc-time">{timeLeft}</div>

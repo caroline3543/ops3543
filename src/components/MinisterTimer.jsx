@@ -89,7 +89,7 @@ export default function MinisterTimer() {
 
       {!session && !showBook && (
         <button className="btn-primary" onClick={() => setShowBook(true)}>
-          + Book Position
+          Reserve a spot
         </button>
       )}
 
@@ -138,7 +138,7 @@ export default function MinisterTimer() {
               disabled={!selectedSlot}
               style={{ opacity: selectedSlot ? 1 : 0.4 }}
             >
-              Confirm Booking
+              All set!
             </button>
             <button className="btn-ghost" onClick={() => { setShowBook(false); setSelectedSlot(null); }}>
               Cancel
@@ -181,7 +181,7 @@ export default function MinisterTimer() {
               </div>
               {isActive && (
                 <div className="minister-remaining">
-                  {secondsLeft > 0 ? `${fmt(secondsLeft)} remaining` : 'Position expired'}
+                  {secondsLeft > 0 ? `${fmt(secondsLeft)} remaining` : 'Time's up — well done'}
                 </div>
               )}
             </>
