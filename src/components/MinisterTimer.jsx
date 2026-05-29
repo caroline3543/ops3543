@@ -5,35 +5,51 @@ import { MINISTER_POSITIONS } from '../data/gameData';
 
 const DURATION = 30 * 60; // 30 minutes in seconds
 
+// Generate 30-min slots for the next 36 hours from now (UTC)
+function generateSlots() {
+  const slots = [];
+  const now = new Date();
+  // Round up to the next 30-min boundary
+  const startMs = Math.ceil(now.getTime() / (30 * 60 * 1000)) * (30 * 60 * 1000);
+  const endMs = now.getTime() + 36 * 60 * 60 * 1000;
+
+  for (let t = startMs; t < endMs; t += 30 * 60 * 1000) {
+    const d = new Date(t);
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    const mm = String(d.getUTCMinutes()).padStart(2, '0');
+    // Day label — today / tomorrow / day after
+    const diffDays = Math.floor((t - new Date().setUTCHours(0,0,0,0)) / (24*60*60*1000));
+    const dayLabel = diffDays === 0 ? 'Today' : diffDays === 1 ? 'Tomorrow' : '+2 days';
+    slots.push({ ts: t, label: `${hh}:${mm} UTC`, dayLabel });
+  }
+  return slots;
+}
+
 export default function MinisterTimer() {
   const [session, setSession] = useLocalStorage('ministerSession', null);
   const [selectedPosition, setSelectedPosition] = useState(MINISTER_POSITIONS[0].id);
-  const [inputTime, setInputTime] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [showBook, setShowBook] = useState(false);
+  const [slots, setSlots] = useState(generateSlots);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const id = setInterval(() => {
+      setNow(Date.now());
+      setSlots(generateSlots());
+    }, 1000);
     return () => clearInterval(id);
   }, []);
 
   const book = () => {
-    if (!inputTime) return;
-    const [h, m] = inputTime.split(':').map(Number);
-    const today = new Date();
-    const startUtc = Date.UTC(
-      today.getUTCFullYear(),
-      today.getUTCMonth(),
-      today.getUTCDate(),
-      h, m, 0
-    );
+    if (!selectedSlot) return;
     setSession({
       positionId: selectedPosition,
-      startUtc,
-      endUtc: startUtc + DURATION * 1000,
+      startUtc: selectedSlot,
+      endUtc: selectedSlot + DURATION * 1000,
     });
     setShowBook(false);
-    setInputTime('');
+    setSelectedSlot(null);
   };
 
   const clear = () => setSession(null);
@@ -42,7 +58,7 @@ export default function MinisterTimer() {
     ? MINISTER_POSITIONS.find(p => p.id === session.positionId)
     : null;
 
-  const isActive = session && now >= session.startUtc && now < session.endUtc;
+  const isActive  = session && now >= session.startUtc && now < session.endUtc;
   const isPending = session && now < session.startUtc;
   const isExpired = session && now >= session.endUtc;
 
@@ -60,6 +76,13 @@ export default function MinisterTimer() {
     return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
   };
 
+  // Group slots by day label
+  const groupedSlots = slots.reduce((acc, s) => {
+    if (!acc[s.dayLabel]) acc[s.dayLabel] = [];
+    acc[s.dayLabel].push(s);
+    return acc;
+  }, {});
+
   return (
     <div className="minister-card">
       <div className="section-label">MINISTER POSITION</div>
@@ -72,6 +95,7 @@ export default function MinisterTimer() {
 
       {showBook && (
         <div className="book-form">
+          {/* Position selector */}
           <div className="form-row">
             {MINISTER_POSITIONS.map(p => (
               <button
@@ -83,18 +107,42 @@ export default function MinisterTimer() {
               </button>
             ))}
           </div>
-          <div className="form-row">
-            <label className="input-label">Start time (UTC)</label>
-            <input
-              type="time"
-              className="time-input"
-              value={inputTime}
-              onChange={e => setInputTime(e.target.value)}
-            />
+
+          {/* Time slot picker */}
+          <div className="form-group">
+            <label className="input-label">Select time slot (UTC)</label>
+            <div className="slot-scroll">
+              {Object.entries(groupedSlots).map(([dayLabel, daySlots]) => (
+                <div key={dayLabel}>
+                  <div className="slot-day-label">{dayLabel}</div>
+                  <div className="slot-grid">
+                    {daySlots.map(s => (
+                      <button
+                        key={s.ts}
+                        className={`slot-btn ${selectedSlot === s.ts ? 'active' : ''}`}
+                        onClick={() => setSelectedSlot(s.ts)}
+                      >
+                        {s.label.replace(' UTC', '')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+
           <div className="form-row">
-            <button className="btn-primary" onClick={book}>Confirm Booking</button>
-            <button className="btn-ghost" onClick={() => setShowBook(false)}>Cancel</button>
+            <button
+              className="btn-primary"
+              onClick={book}
+              disabled={!selectedSlot}
+              style={{ opacity: selectedSlot ? 1 : 0.4 }}
+            >
+              Confirm Booking
+            </button>
+            <button className="btn-ghost" onClick={() => { setShowBook(false); setSelectedSlot(null); }}>
+              Cancel
+            </button>
           </div>
         </div>
       )}

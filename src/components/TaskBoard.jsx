@@ -1,27 +1,27 @@
 // src/components/TaskBoard.jsx
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const QUADRANTS = [
-  { id: 'do-now',  label: 'Do Now',  sub: 'Urgent & Important',     color: '#ef4444' },
-  { id: 'do-soon', label: 'Do Soon', sub: 'Important, Not Urgent',   color: '#f59e0b' },
-  { id: 'do-later',label: 'Do Later',sub: 'Urgent, Not Important',   color: '#3b82f6' },
-  { id: 'maybe',   label: 'Maybe',   sub: 'Neither',                 color: '#6b7280' },
+  { id: 'do-now',   label: 'Do Now',   sub: 'Urgent & Important',   color: '#e8705a' },
+  { id: 'do-soon',  label: 'Do Soon',  sub: 'Important, Not Urgent', color: '#f0a742' },
+  { id: 'do-later', label: 'Do Later', sub: 'Urgent, Not Important', color: '#5bc8d4' },
+  { id: 'maybe',    label: 'Maybe',    sub: 'Neither',               color: '#6b7280' },
 ];
 
-export default function TaskBoard({ externalTasks }) {
+export default function TaskBoard({ externalTasks, onTaskComplete, onAllDone }) {
   const [tasks, setTasks] = useLocalStorage('tasks', []);
-  const [view, setView] = useState('list'); // 'list' | 'matrix'
-  const [filter, setFilter] = useState('all'); // 'all' | 'personal' | 'event'
+  const [view, setView] = useState('list');
+  const [filter, setFilter] = useState('all');
   const [newText, setNewText] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
   const [dragId, setDragId] = useState(null);
   const [dragOverQ, setDragOverQ] = useState(null);
-  const allTasks = [...tasks, ...(externalTasks || [])];
+  const [justEarned, setJustEarned] = useState(null);
 
-  // Merge external tasks into local storage once
-  useState(() => {
+  // Merge external tasks once
+  useEffect(() => {
     if (externalTasks?.length) {
       setTasks(prev => {
         const existingIds = new Set(prev.map(t => t.id));
@@ -29,7 +29,7 @@ export default function TaskBoard({ externalTasks }) {
         return newOnes.length ? [...prev, ...newOnes] : prev;
       });
     }
-  });
+  }, [externalTasks]);
 
   const addTask = () => {
     if (!newText.trim()) return;
@@ -44,7 +44,31 @@ export default function TaskBoard({ externalTasks }) {
     setNewText('');
   };
 
-  const toggle = (id) => setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  const toggle = (id) => {
+    setTasks(prev => {
+      const updated = prev.map(t => {
+        if (t.id !== id) return t;
+        const nowDone = !t.done;
+        if (nowDone && onTaskComplete) {
+          onTaskComplete(t);
+          const coins = t.type === 'event' ? 5 : 3;
+          const bonus = t.starred ? 2 : 0;
+          setJustEarned(`+${coins + bonus} 🪙`);
+          setTimeout(() => setJustEarned(null), 1800);
+        }
+        return { ...t, done: nowDone };
+      });
+      // Check if all done
+      const allDone = updated.every(t => t.done);
+      if (allDone && updated.length > 0 && onAllDone) {
+        onAllDone();
+        setJustEarned('+10 🪙 All done!');
+        setTimeout(() => setJustEarned(null), 2000);
+      }
+      return updated;
+    });
+  };
+
   const star = (id) => setTasks(prev => prev.map(t => t.id === id ? { ...t, starred: !t.starred } : t));
   const remove = (id) => setTasks(prev => prev.filter(t => t.id !== id));
   const startEdit = (t) => { setEditingId(t.id); setEditText(t.text); };
@@ -60,15 +84,7 @@ export default function TaskBoard({ externalTasks }) {
 
   const forQ = (qid) => filtered.filter(t => t.quadrant === qid);
 
-  const onDragStart = (id) => setDragId(id);
-  const onDragOver = (e, qid) => { e.preventDefault(); setDragOverQ(qid); };
-  const onDrop = (qid) => {
-    if (dragId) moveQuadrant(dragId, qid);
-    setDragId(null);
-    setDragOverQ(null);
-  };
-
-  const TaskItem = ({ t, showQuadrantMove = false }) => (
+  const TaskItem = ({ t, showMove = false }) => (
     <div className={`task-item ${t.done ? 'task-done' : ''} ${t.starred ? 'task-starred' : ''}`}>
       <button className="task-check" onClick={() => toggle(t.id)}>
         {t.done ? '✓' : '○'}
@@ -76,8 +92,7 @@ export default function TaskBoard({ externalTasks }) {
       <div className="task-body">
         {editingId === t.id ? (
           <input
-            autoFocus
-            className="task-edit-input"
+            autoFocus className="task-edit-input"
             value={editText}
             onChange={e => setEditText(e.target.value)}
             onBlur={() => saveEdit(t.id)}
@@ -89,28 +104,32 @@ export default function TaskBoard({ externalTasks }) {
         {t.eventName && <span className="task-event-tag">{t.eventName}</span>}
       </div>
       <div className="task-actions">
-        {showQuadrantMove && (
-          <select
-            className="q-select"
-            value={t.quadrant}
-            onChange={e => moveQuadrant(t.id, e.target.value)}
-          >
+        {showMove && (
+          <select className="q-select" value={t.quadrant} onChange={e => moveQuadrant(t.id, e.target.value)}>
             {QUADRANTS.map(q => <option key={q.id} value={q.id}>{q.label}</option>)}
           </select>
         )}
         <button className={`task-btn ${t.starred ? 'starred' : ''}`} onClick={() => star(t.id)}>★</button>
-        <button className="task-btn edit-btn" onClick={() => startEdit(t)}>✎</button>
-        <button className="task-btn delete-btn" onClick={() => remove(t.id)}>✕</button>
+        <button className="task-btn" onClick={() => startEdit(t)}>✎</button>
+        <button className="task-btn danger" onClick={() => remove(t.id)}>✕</button>
       </div>
     </div>
   );
 
+  const open = filtered.filter(t => !t.done).length;
+  const done = filtered.filter(t => t.done).length;
+  const starred = filtered.filter(t => t.starred).length;
+
   return (
-    <div className="task-board">
+    <div className="card task-card">
+      {justEarned && (
+        <div className="coin-toast">{justEarned}</div>
+      )}
+
       <div className="panel-header">
         <div>
-          <div className="section-label">EXECUTION</div>
-          <div className="panel-title">Tasks</div>
+          <div className="section-label">YOUR TASKS</div>
+          <div className="panel-title">What's on</div>
         </div>
         <div className="view-toggle">
           <button className={`toggle-btn ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')}>List</button>
@@ -120,11 +139,7 @@ export default function TaskBoard({ externalTasks }) {
 
       <div className="filter-row">
         {['all', 'personal', 'event'].map(f => (
-          <button
-            key={f}
-            className={`filter-btn ${filter === f ? 'active' : ''}`}
-            onClick={() => setFilter(f)}
-          >
+          <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
         ))}
@@ -133,7 +148,7 @@ export default function TaskBoard({ externalTasks }) {
       <div className="add-task-row">
         <input
           className="task-input"
-          placeholder="Add a task for today..."
+          placeholder="What needs doing..."
           value={newText}
           onChange={e => setNewText(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addTask()}
@@ -145,12 +160,12 @@ export default function TaskBoard({ externalTasks }) {
         <div className="task-list">
           {filtered.length === 0 && (
             <div className="empty-state">
-              <div className="empty-icon">✓</div>
-              <div>Your slate is clear</div>
-              <div className="empty-sub">Add tasks above and they'll stay synced across all views.</div>
+              <div className="empty-icon">✦</div>
+              <div className="empty-text">You're all caught up.</div>
+              <div className="empty-sub">Nothing outstanding. That's everything.</div>
             </div>
           )}
-          {filtered.map(t => <TaskItem key={t.id} t={t} showQuadrantMove={true} />)}
+          {filtered.map(t => <TaskItem key={t.id} t={t} showMove={true} />)}
         </div>
       )}
 
@@ -161,8 +176,9 @@ export default function TaskBoard({ externalTasks }) {
               key={q.id}
               className={`matrix-quadrant ${dragOverQ === q.id ? 'drag-over' : ''}`}
               style={{ borderTopColor: q.color }}
-              onDragOver={e => onDragOver(e, q.id)}
-              onDrop={() => onDrop(q.id)}
+              onDragOver={e => e.preventDefault()}
+              onDragOver={e => { e.preventDefault(); setDragOverQ(q.id); }}
+              onDrop={() => { if (dragId) moveQuadrant(dragId, q.id); setDragId(null); setDragOverQ(null); }}
             >
               <div className="q-header">
                 <div className="q-label" style={{ color: q.color }}>{q.label}</div>
@@ -170,25 +186,19 @@ export default function TaskBoard({ externalTasks }) {
               </div>
               <div className="q-tasks">
                 {forQ(q.id).map(t => (
-                  <div
-                    key={t.id}
-                    className={`q-task-item ${t.done ? 'task-done' : ''}`}
-                    draggable
-                    onDragStart={() => onDragStart(t.id)}
-                  >
+                  <div key={t.id} className={`q-task-item ${t.done ? 'task-done' : ''}`}
+                    draggable onDragStart={() => setDragId(t.id)}>
                     <button className="task-check small" onClick={() => toggle(t.id)}>
                       {t.done ? '✓' : '○'}
                     </button>
                     <span className="task-text">{t.text}</span>
                     <div className="q-task-actions">
                       <button className={`task-btn ${t.starred ? 'starred' : ''}`} onClick={() => star(t.id)}>★</button>
-                      <button className="task-btn delete-btn" onClick={() => remove(t.id)}>✕</button>
+                      <button className="task-btn danger" onClick={() => remove(t.id)}>✕</button>
                     </div>
                   </div>
                 ))}
-                {forQ(q.id).length === 0 && (
-                  <div className="q-empty">Drop tasks here</div>
-                )}
+                {forQ(q.id).length === 0 && <div className="q-empty">Nothing here</div>}
               </div>
             </div>
           ))}
@@ -196,9 +206,9 @@ export default function TaskBoard({ externalTasks }) {
       )}
 
       <div className="task-stats">
-        <span>{filtered.filter(t => t.done).length} done</span>
-        <span>{filtered.filter(t => !t.done).length} open</span>
-        <span>{filtered.filter(t => t.starred).length} starred</span>
+        <span>{open} open</span>
+        <span>{done} done</span>
+        <span>{starred} starred</span>
       </div>
     </div>
   );

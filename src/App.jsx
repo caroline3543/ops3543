@@ -1,28 +1,32 @@
 // src/App.jsx
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { useCoins, COIN_REWARDS } from './hooks/useCoins';
 import UtcCountdown from './components/UtcCountdown';
 import MinisterTimer from './components/MinisterTimer';
 import ServerAge from './components/ServerAge';
 import EventsPanel from './components/EventsPanel';
 import TaskBoard from './components/TaskBoard';
 import SettingsPanel from './components/SettingsPanel';
+import BaseCamp from './components/BaseCamp';
 import './App.css';
 
 export default function App() {
+  const [tab, setTab] = useState('today');
   const [commanderName] = useLocalStorage('commanderName', 'Commander');
   const [showSettings, setShowSettings] = useState(false);
   const [pendingTasks, setPendingTasks] = useState([]);
   const [greeting, setGreeting] = useState('');
   const [dayStr, setDayStr] = useState('');
+  const [statusLine, setStatusLine] = useState('');
+  const { coins, earn } = useCoins();
 
   useEffect(() => {
     const h = new Date().getUTCHours();
     if (h < 12) setGreeting('Good morning');
     else if (h < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
-
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     setDayStr(days[new Date().getDay()]);
   }, []);
 
@@ -30,90 +34,88 @@ export default function App() {
     setPendingTasks(prev => [...prev, ...tasks]);
   };
 
+  const handleTaskComplete = (task) => {
+    const base = task.type === 'event' ? COIN_REWARDS.eventTask : COIN_REWARDS.personalTask;
+    const bonus = task.starred ? COIN_REWARDS.starredBonus : 0;
+    earn(base + bonus, `Completed: ${task.text}`);
+  };
+
+  const handleAllDone = () => {
+    earn(COIN_REWARDS.allDoneBonus, 'All tasks cleared for the day!');
+  };
+
   return (
     <div className="app">
+      <div className="app-bg" />
+
       <div className="app-inner">
         {/* Header */}
         <header className="app-header">
           <div className="header-left">
             <div className="header-badge">CC</div>
             <div>
-              <div className="header-label">ALLIANCE OPS</div>
+              <div className="header-eyebrow">Alliance Ops</div>
               <div className="header-title">Command Center</div>
             </div>
           </div>
-          <button className="settings-btn" onClick={() => setShowSettings(true)}>
-            ⚙
-          </button>
+          <div className="header-right">
+            <div className="coin-display">🪙 {coins}</div>
+            <button className="settings-btn" onClick={() => setShowSettings(true)}>⚙</button>
+          </div>
         </header>
 
-        {/* Greeting */}
-        <div className="greeting-section">
-          <div className="greeting-day">{dayStr}</div>
-          <div className="greeting-text">{greeting}, {commanderName}.</div>
-        </div>
+        {/* Tab content */}
+        {tab === 'today' && (
+          <>
+            <div className="greeting-section">
+              <div className="greeting-day">{dayStr}</div>
+              <div className="greeting-text">
+                {greeting}, <span className="greeting-name">{commanderName}.</span>
+              </div>
+            </div>
+            <UtcCountdown />
+            <MinisterTimer />
+            <EventsPanel onTasksAdded={handleTasksAdded} />
+          </>
+        )}
 
-        {/* UTC Countdown */}
-        <UtcCountdown />
+        {tab === 'ichooseto' && (
+          <>
+            <div className="tab-heading-section">
+              <div className="tab-heading">I choose to.</div>
+              <div className="tab-heading-sub">One thing at a time.</div>
+            </div>
+            <ServerAge />
+            <TaskBoard
+              externalTasks={pendingTasks}
+              onTaskComplete={handleTaskComplete}
+              onAllDone={handleAllDone}
+            />
+          </>
+        )}
 
-        {/* Server Age */}
-        <ServerAge />
-
-        {/* Minister Timer */}
-        <MinisterTimer />
-
-        {/* Events */}
-        <EventsPanel onTasksAdded={handleTasksAdded} />
-
-        {/* Task Board */}
-        <TaskBoard externalTasks={pendingTasks} />
-
-        {/* Pulse */}
-        <PulsePanel />
-
-        {/* Bottom nav */}
-        <nav className="bottom-nav">
-          <button className="nav-btn active">
-            <span className="nav-icon">◈</span>
-            <span>Today</span>
-          </button>
-          <button className="nav-btn" onClick={() => setShowSettings(true)}>
-            <span className="nav-icon">⚙</span>
-            <span>Settings</span>
-          </button>
-        </nav>
+        {tab === 'camp' && (
+          <BaseCamp />
+        )}
       </div>
+
+      {/* Bottom nav */}
+      <nav className="bottom-nav">
+        <button className={`nav-btn ${tab === 'today' ? 'active' : ''}`} onClick={() => setTab('today')}>
+          <span className="nav-icon">☀️</span>
+          <span>Today</span>
+        </button>
+        <button className={`nav-btn ${tab === 'ichooseto' ? 'active' : ''}`} onClick={() => setTab('ichooseto')}>
+          <span className="nav-icon">✦</span>
+          <span>I choose to</span>
+        </button>
+        <button className={`nav-btn ${tab === 'camp' ? 'active' : ''}`} onClick={() => setTab('camp')}>
+          <span className="nav-icon">🌿</span>
+          <span>Camp</span>
+        </button>
+      </nav>
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
-    </div>
-  );
-}
-
-// Inline pulse panel — small enough to stay here
-function PulsePanel() {
-  const [tasks] = useLocalStorage('tasks', []);
-  const open = tasks.filter(t => !t.done).length;
-  const done = tasks.filter(t => t.done).length;
-  const starred = tasks.filter(t => t.starred).length;
-
-  return (
-    <div className="pulse-card">
-      <div className="section-label">PULSE</div>
-      <div className="panel-title">Today at a glance</div>
-      <div className="pulse-stats">
-        <div className="pulse-stat">
-          <div className="pulse-num">{open}</div>
-          <div className="pulse-label">OPEN</div>
-        </div>
-        <div className="pulse-stat">
-          <div className="pulse-num">{done}</div>
-          <div className="pulse-label">DONE</div>
-        </div>
-        <div className="pulse-stat">
-          <div className="pulse-num">{starred}</div>
-          <div className="pulse-label">STARRED</div>
-        </div>
-      </div>
     </div>
   );
 }

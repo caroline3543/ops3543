@@ -31,35 +31,47 @@ export default function ServerAge() {
       })()
     : 100;
 
-  const visibleUpcoming = upcoming.slice(0, showCount);
+  // How many to show on the card (capped at available)
+  const cardMilestones = upcoming.slice(0, showCount);
+  const visibleUpcoming = upcoming.slice(0, Math.max(showCount, 5));
 
   return (
     <>
       <div className="server-age-card" onClick={() => setOpen(true)}>
-        <div className="server-age-left">
-          <div className="section-label">STATE 3543</div>
-          <div className="server-day">Day {dayAge}</div>
-          {next && (
-            <div className="server-next">
-              Next: <strong>{next.label}</strong> in {daysToNext}d
+        <div className="server-age-top">
+          <div className="server-age-header">
+            <div>
+              <div className="section-label">STATE 3543</div>
+              <div className="server-day">Day {dayAge}</div>
             </div>
-          )}
-        </div>
-        <div className="server-age-right">
-          <div className="milestone-ring">
-            <svg viewBox="0 0 40 40" className="ring-svg">
-              <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
-              <circle
-                cx="20" cy="20" r="16" fill="none"
-                stroke="#3b82f6" strokeWidth="3"
-                strokeDasharray={`${nextProgress} 100`}
-                strokeLinecap="round"
-                transform="rotate(-90 20 20)"
-                style={{ transition: 'stroke-dasharray 0.8s ease' }}
-              />
-            </svg>
-            <span className="ring-pct">{Math.round(nextProgress)}%</span>
+            <div className="milestone-ring">
+              <svg viewBox="0 0 40 40" className="ring-svg">
+                <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+                <circle
+                  cx="20" cy="20" r="16" fill="none"
+                  stroke="#3b82f6" strokeWidth="3"
+                  strokeDasharray={`${nextProgress} 100`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 20 20)"
+                  style={{ transition: 'stroke-dasharray 0.8s ease' }}
+                />
+              </svg>
+              <span className="ring-pct">{Math.round(nextProgress)}%</span>
+            </div>
           </div>
+
+          {/* Milestone list on card */}
+          <div className="card-milestones">
+            {cardMilestones.map((m, i) => (
+              <div key={m.day} className={`card-milestone ${i === 0 ? 'card-milestone-next' : ''}`}>
+                <div className="card-milestone-day">Day {m.day}</div>
+                <div className="card-milestone-label">{m.label}</div>
+                <div className="card-milestone-eta">in {m.day - dayAge}d</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="server-tap-hint">Tap for full timeline ›</div>
         </div>
       </div>
 
@@ -89,9 +101,9 @@ export default function ServerAge() {
             </div>
 
             <div className="drawer-show-more">
-              <label className="input-label">Show next</label>
+              <label className="input-label">Show on card</label>
               <div className="show-more-btns">
-                {[1, 3, 5, 10].map(n => (
+                {[1, 2, 3, 5].map(n => (
                   <button
                     key={n}
                     className={`show-btn ${showCount === n ? 'active' : ''}`}
