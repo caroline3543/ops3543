@@ -1,8 +1,13 @@
 // src/components/Backpack.jsx
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ResourceIcon, RESOURCE_ICONS } from './ResourceIcons';
+import { ResourceIcon } from './ResourceIcons';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, Scatter
+} from 'recharts';
 
+// ── Constants
 const DEFAULT_RESOURCES = [
   { id: 'fire_crystals',         name: 'Fire Crystals',          category: 'crystals',  priority: 1 },
   { id: 'refined_fire_crystals', name: 'Refined Fire Crystals',  category: 'crystals',  priority: 2 },
@@ -21,319 +26,540 @@ const DEFAULT_RESOURCES = [
 ];
 
 const CATEGORIES = [
-  { id: 'all',       label: 'All' },
-  { id: 'crystals',  label: 'Crystals' },
-  { id: 'heroes',    label: 'Heroes' },
-  { id: 'gear',      label: 'Gear' },
-  { id: 'currency',  label: 'Currency' },
+  { id: 'all', label: 'All' },
+  { id: 'crystals', label: 'Crystals' },
+  { id: 'heroes', label: 'Heroes' },
+  { id: 'gear', label: 'Gear' },
+  { id: 'currency', label: 'Currency' },
   { id: 'materials', label: 'Materials' },
-  { id: 'custom',    label: 'Custom' },
+  { id: 'custom', label: 'Custom' },
 ];
 
-function defaultData(res) {
-  return {
-    current: 0, target: 0, targetDate: '',
-    pinned: false, snapshots: [], dailyGoal: 0,
-  };
+const LOG_TYPES = [
+  { id: 'gain',       label: 'Gain',        color: '#5cb896' },
+  { id: 'spend',      label: 'Spend',       color: '#e8705a' },
+  { id: 'eventSpend', label: 'Event Spend', color: '#f0a742' },
+  { id: 'correction', label: 'Correction',  color: '#8a8a9a' },
+];
+
+// ── Helpers
+function calcDailyRate(logs) {
+  if (!logs || logs.length < 2) return null;
+  const sorted = [...logs].filter(l => l.logType === 'gain' || l.logType === 'correction')
+    .sort((a, b) => a.date - b.date);
+  if (sorted.length < 2) return null;
+  const first = sorted[0], last = sorted[sorted.length - 1];
+  const days = (last.date - first.date) / 86400000;
+  if (days <= 0) return null;
+  return (last.amount - first.amount) / days;
 }
 
-function calcProjection(data) {
-  if (!data.snapshots || data.snapshots.length < 2) return null;
-  const sorted = [...data.snapshots].sort((a,b)=>a.date-b.date);
-  const first = sorted[0], last = sorted[sorted.length-1];
-  const daysDiff = (last.date - first.date) / (1000*60*60*24);
-  if (daysDiff <= 0) return null;
-  const dailyRate = (last.amount - first.amount) / daysDiff;
-  if (dailyRate <= 0) return null;
-  const remaining = (data.target || 0) - (data.current || 0);
-  if (remaining <= 0) return { daysLeft: 0, dailyRate, eta: 'Done!' };
+function calcProjection(current, target, dailyRate) {
+  if (!target || !dailyRate || dailyRate <= 0) return null;
+  const remaining = target - current;
+  if (remaining <= 0) return { daysLeft: 0, eta: 'Done!' };
   const daysLeft = Math.ceil(remaining / dailyRate);
   const eta = new Date(Date.now() + daysLeft * 86400000);
   return {
     daysLeft,
-    dailyRate: Math.round(dailyRate),
-    eta: eta.toLocaleDateString('en-NZ', { month:'short', day:'numeric' }),
+    eta: eta.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' }),
   };
 }
 
-function MiniSparkline({ snapshots = [], target = 0 }) {
-  if (snapshots.length < 2) return null;
-  const sorted = [...snapshots].sort((a,b)=>a.date-b.date);
-  const values = sorted.map(s=>s.amount);
-  const min = Math.min(...values, 0);
-  const max = Math.max(...values, target || values[values.length-1]*1.2, 1);
-  const w = 60, h = 24;
-  const pts = values.map((v,i) => {
-    const x = (i/(values.length-1))*w;
-    const y = h - ((v-min)/(max-min))*h;
-    return `${x},${y}`;
-  }).join(' ');
-  const targetY = h - ((target-min)/(max-min))*h;
-
-  return (
-    <svg width={w} height={h} style={{ overflow:'visible' }}>
-      {target > 0 && (
-        <line x1="0" y1={targetY} x2={w} y2={targetY}
-          stroke="var(--accent)" strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
-      )}
-      <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx={pts.split(' ').pop().split(',')[0]} cy={pts.split(' ').pop().split(',')[1]} r="2" fill="var(--accent)"/>
-    </svg>
-  );
+function fmtNum(n) {
+  if (!n && n !== 0) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(1)+'k';
+  return n.toLocaleString();
 }
 
-export default function Backpack() {
-  const [resourceData, setResourceData] = useLocalStorage('backpack_resources_v2', {});
-  const [customResources, setCustomResources] = useLocalStorage('backpack_custom', []);
-  const [category, setCategory] = useState('all');
-  const [expandedId, setExpandedId] = useState(null);
-  const [showAddCustom, setShowAddCustom] = useState(false);
-  const [customForm, setCustomForm] = useState({ name:'', category:'custom' });
-  const [snapshotInput, setSnapshotInput] = useState({});
+function dayLabel(ts) {
+  return new Date(ts).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' });
+}
 
-  const allResources = [
-    ...DEFAULT_RESOURCES,
-    ...customResources.map(r=>({...r, priority:999})),
+// ── Resource bottom sheet
+function ResourceSheet({ resource, data, logs, onClose, onSave }) {
+  const recentLogs = (logs || []).filter(l => l.resourceId === resource.id)
+    .sort((a, b) => b.date - a.date);
+
+  // Local state — never writes to global until Save/Log
+  const [amountInput, setAmountInput] = useState('');
+  const [logType, setLogType] = useState('gain');
+  const [noteInput, setNoteInput] = useState('');
+  const [targetInput, setTargetInput] = useState(data?.target ? String(data.target) : '');
+  const [targetDateInput, setTargetDateInput] = useState(data?.targetDate || '');
+  const [activeTab, setActiveTab] = useState('log'); // 'log' | 'graph' | 'history'
+
+  const current = data?.current || 0;
+  const target = data?.target || 0;
+  const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : null;
+  const dailyRate = calcDailyRate(recentLogs);
+  const proj = target > 0 && dailyRate ? calcProjection(current, target, dailyRate) : null;
+
+  const lastLog = recentLogs[0];
+  const prevLog = recentLogs[1];
+  const changeSinceLast = lastLog && prevLog ? lastLog.amount - prevLog.amount : null;
+
+  const handleLog = () => {
+    const amount = parseInt(amountInput.replace(/,/g, ''), 10);
+    if (isNaN(amount)) return;
+    const entry = {
+      id: Date.now(),
+      resourceId: resource.id,
+      amount,
+      date: Date.now(),
+      note: noteInput.trim(),
+      logType,
+    };
+    const newTarget = targetInput ? parseInt(targetInput.replace(/,/g,''), 10) : data?.target || 0;
+    onSave(resource.id, { current: amount, target: newTarget, targetDate: targetDateInput }, entry);
+    setAmountInput('');
+    setNoteInput('');
+  };
+
+  const handleSaveTarget = () => {
+    const t = parseInt(targetInput.replace(/,/g,''), 10);
+    onSave(resource.id, {
+      current: data?.current || 0,
+      target: isNaN(t) ? 0 : t,
+      targetDate: targetDateInput,
+    }, null);
+  };
+
+  // Build chart data from logs
+  const chartLogs = recentLogs.slice(0, 30).reverse();
+  const chartData = chartLogs.map(l => ({
+    date: dayLabel(l.date),
+    amount: l.amount,
+    type: l.logType,
+  }));
+
+  // Projection line
+  const projData = [];
+  if (dailyRate && target > 0 && chartData.length > 0) {
+    const lastAmount = chartData[chartData.length - 1]?.amount || current;
+    for (let i = 0; i <= Math.min(30, proj?.daysLeft || 0); i++) {
+      const d = new Date(Date.now() + i * 86400000);
+      projData.push({
+        date: dayLabel(d.getTime()),
+        projected: Math.min(target, Math.round(lastAmount + dailyRate * i)),
+        target,
+      });
+    }
+  }
+
+  const combinedData = [
+    ...chartData.map(d => ({ ...d, projected: undefined })),
+    ...projData.filter(p => !chartData.find(d => d.date === p.date)),
   ];
 
-  const filtered = allResources.filter(r=>category==='all'||r.category===category);
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet-panel" onClick={e => e.stopPropagation()}>
+        {/* Handle */}
+        <div className="sheet-handle"/>
 
-  const getData = (id) => resourceData[id] || defaultData();
-
-  const updateData = (id, updates) => {
-    setResourceData(prev => ({
-      ...prev,
-      [id]: { ...(prev[id] || defaultData()), ...updates },
-    }));
-  };
-
-  const addSnapshot = (id) => {
-    const val = parseInt(snapshotInput[id]);
-    if (isNaN(val)) return;
-    const data = getData(id);
-    const newSnap = { date: Date.now(), amount: val };
-    updateData(id, {
-      current: val,
-      snapshots: [...(data.snapshots||[]).slice(-9), newSnap],
-    });
-    setSnapshotInput(prev=>({...prev,[id]:''}));
-  };
-
-  const togglePin = (id) => updateData(id, { pinned: !getData(id).pinned });
-
-  const addCustomResource = () => {
-    if (!customForm.name.trim()) return;
-    const newRes = { id: `custom_${Date.now()}`, name: customForm.name.trim(), category: 'custom', priority: 999 };
-    setCustomResources(prev=>[...prev,newRes]);
-    setCustomForm({ name:'', category:'custom' });
-    setShowAddCustom(false);
-  };
-
-  const deleteCustom = (id) => {
-    setCustomResources(prev=>prev.filter(r=>r.id!==id));
-    setResourceData(prev=>{ const n={...prev}; delete n[id]; return n; });
-  };
-
-  // Summary stats
-  const withTargets = allResources.filter(r=>getData(r.id).target>0);
-  const onTrack = withTargets.filter(r=>{
-    const proj = calcProjection(getData(r.id));
-    if (!proj) return false;
-    const data = getData(r.id);
-    if (!data.targetDate) return true;
-    const target = new Date(data.targetDate).getTime();
-    return Date.now() + proj.daysLeft*86400000 <= target;
-  });
-  const behind = withTargets.length - onTrack.length;
-
-  const pinnedResources = filtered.filter(r=>getData(r.id).pinned);
-  const unpinnedResources = filtered.filter(r=>!getData(r.id).pinned);
-  const displayResources = [...pinnedResources, ...unpinnedResources];
-
-  const ResourceRow = ({ resource }) => {
-    const data = getData(resource.id);
-    const pct = data.target>0 ? Math.min(100,Math.round((data.current/data.target)*100)) : null;
-    const proj = calcProjection(data);
-    const isExpanded = expandedId===resource.id;
-    const isCustom = resource.category==='custom';
-
-    return (
-      <div className={`resource-row ${data.pinned?'resource-pinned':''} ${isExpanded?'resource-row-expanded':''}`}>
-        <div className="resource-row-main" onClick={()=>setExpandedId(isExpanded?null:resource.id)}>
-          {/* Icon */}
-          <div className="resource-icon-wrap">
-            <ResourceIcon resourceId={resource.id} size={32}/>
-          </div>
-
-          {/* Name + progress */}
-          <div className="resource-row-info">
-            <div className="resource-row-name">{resource.name}</div>
-            {data.target>0 ? (
-              <div className="resource-row-progress-wrap">
-                <div className="resource-mini-track">
-                  <div className="resource-mini-fill" style={{width:`${pct}%`}}/>
-                </div>
-                <span className="resource-row-pct">{pct}%</span>
+        {/* Header */}
+        <div className="sheet-header">
+          <div className="sheet-header-left">
+            <ResourceIcon resourceId={resource.id} size={38}/>
+            <div>
+              <div className="sheet-resource-name">{resource.name}</div>
+              <div className="sheet-resource-meta">
+                <span className="sheet-current">{fmtNum(current)}</span>
+                {target > 0 && <><span className="sheet-sep"> / </span><span className="sheet-target">{fmtNum(target)}</span></>}
+                {pct !== null && <span className="sheet-pct"> · {pct}%</span>}
               </div>
-            ) : (
-              <div className="resource-row-amount">{(data.current||0).toLocaleString()}</div>
-            )}
+            </div>
           </div>
-
-          {/* Right side */}
-          <div className="resource-row-right">
-            {data.target>0 && (
-              <div className="resource-row-values">
-                <span className="resource-current">{(data.current||0).toLocaleString()}</span>
-                <span className="resource-sep">/</span>
-                <span className="resource-target-val">{data.target.toLocaleString()}</span>
-              </div>
-            )}
-            {proj && data.target>0 && (
-              <div className={`resource-eta ${proj.daysLeft===0?'eta-done':''}`}>
-                {proj.daysLeft===0?'Done!':proj.eta}
-              </div>
-            )}
-            <span className="resource-expand-arrow">{isExpanded?'▲':'▼'}</span>
-          </div>
+          <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Expanded */}
-        {isExpanded && (
-          <div className="resource-expanded-panel">
-            {/* Snapshot input */}
-            <div className="snapshot-section">
-              <div className="snapshot-label">Log current amount</div>
-              <div className="snapshot-row">
-                <input
-                  type="number"
-                  className="snapshot-input"
-                  placeholder="Enter amount"
-                  value={snapshotInput[resource.id]||''}
-                  onChange={e=>setSnapshotInput(p=>({...p,[resource.id]:e.target.value}))}
-                  onKeyDown={e=>e.key==='Enter'&&addSnapshot(resource.id)}
-                />
-                <button className="snapshot-btn" onClick={()=>addSnapshot(resource.id)}>Log</button>
+        {/* Progress bar */}
+        {pct !== null && (
+          <div className="sheet-progress-track">
+            <div className="sheet-progress-fill" style={{ width: `${pct}%` }}/>
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div className="sheet-stats-row">
+          {dailyRate !== null && (
+            <div className="sheet-stat">
+              <div className="sheet-stat-val">+{Math.round(dailyRate)}/day</div>
+              <div className="sheet-stat-lbl">Daily gain</div>
+            </div>
+          )}
+          {proj && (
+            <div className="sheet-stat">
+              <div className="sheet-stat-val">{proj.eta}</div>
+              <div className="sheet-stat-lbl">Est. completion</div>
+            </div>
+          )}
+          {changeSinceLast !== null && (
+            <div className="sheet-stat">
+              <div className="sheet-stat-val" style={{ color: changeSinceLast >= 0 ? 'var(--sage)' : 'var(--rose)' }}>
+                {changeSinceLast >= 0 ? '+' : ''}{fmtNum(changeSinceLast)}
               </div>
-              {data.snapshots?.length>0 && (
-                <div className="snapshot-history">
-                  Last: {data.snapshots[data.snapshots.length-1].amount.toLocaleString()} · {new Date(data.snapshots[data.snapshots.length-1].date).toLocaleDateString('en-NZ',{month:'short',day:'numeric'})}
-                </div>
-              )}
+              <div className="sheet-stat-lbl">Last change</div>
+            </div>
+          )}
+          {proj && proj.daysLeft > 0 && (
+            <div className="sheet-stat">
+              <div className="sheet-stat-val">{proj.daysLeft}d</div>
+              <div className="sheet-stat-lbl">Days left</div>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="sheet-tabs">
+          {['log', 'graph', 'history'].map(t => (
+            <button key={t} className={`sheet-tab ${activeTab === t ? 'active' : ''}`}
+              onClick={() => setActiveTab(t)}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* LOG TAB */}
+        {activeTab === 'log' && (
+          <div className="sheet-tab-content">
+            {/* Log type */}
+            <div className="log-type-row">
+              {LOG_TYPES.map(lt => (
+                <button key={lt.id}
+                  className={`log-type-btn ${logType === lt.id ? 'active' : ''}`}
+                  style={{ '--lt-color': lt.color }}
+                  onClick={() => setLogType(lt.id)}>
+                  {lt.label}
+                </button>
+              ))}
             </div>
 
-            {/* Target + date */}
-            <div className="form-row-2" style={{gap:'8px',marginBottom:'10px'}}>
-              <div className="form-group">
+            {/* Amount input — local state, no global writes until Log tapped */}
+            <div className="sheet-input-group">
+              <label className="input-label">Current amount</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="sheet-input"
+                value={amountInput}
+                onChange={e => setAmountInput(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder={fmtNum(current)}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+              />
+            </div>
+
+            <div className="sheet-input-group">
+              <label className="input-label">Note (optional)</label>
+              <input
+                type="text"
+                className="sheet-input"
+                value={noteInput}
+                onChange={e => setNoteInput(e.target.value)}
+                placeholder="e.g. After Bear Trap"
+                autoComplete="off"
+              />
+            </div>
+
+            <button
+              className="btn-primary sheet-log-btn"
+              onClick={handleLog}
+              disabled={!amountInput}
+              style={{ opacity: amountInput ? 1 : 0.4 }}
+            >
+              Log amount
+            </button>
+
+            <div className="sheet-divider"/>
+
+            {/* Target */}
+            <div className="sheet-input-row">
+              <div className="sheet-input-group" style={{ flex: 1 }}>
                 <label className="input-label">Target</label>
-                <input type="number" className="text-input" value={data.target||''}
-                  onChange={e=>updateData(resource.id,{target:Number(e.target.value)})} placeholder="0"/>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="sheet-input"
+                  value={targetInput}
+                  onChange={e => setTargetInput(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="0"
+                  autoComplete="off"
+                />
               </div>
-              <div className="form-group">
+              <div className="sheet-input-group" style={{ flex: 1 }}>
                 <label className="input-label">By date</label>
-                <input type="date" className="text-input" value={data.targetDate||''}
-                  onChange={e=>updateData(resource.id,{targetDate:e.target.value})}/>
+                <input
+                  type="date"
+                  className="sheet-input"
+                  value={targetDateInput}
+                  onChange={e => setTargetDateInput(e.target.value)}
+                />
               </div>
             </div>
+            <button className="btn-ghost sheet-save-target-btn" onClick={handleSaveTarget}>
+              Save target
+            </button>
+          </div>
+        )}
 
-            {/* Projections */}
-            {proj && data.target>0 && (
-              <div className="projection-card">
-                <div className="projection-row">
-                  <span className="proj-label">Daily gain</span>
-                  <span className="proj-value">+{proj.dailyRate}/day</span>
+        {/* GRAPH TAB */}
+        {activeTab === 'graph' && (
+          <div className="sheet-tab-content">
+            {chartData.length < 2 ? (
+              <div className="sheet-empty">
+                Log at least 2 entries to see a chart.
+              </div>
+            ) : (
+              <div className="sheet-chart-wrap">
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={combinedData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)"/>
+                    <XAxis dataKey="date" tick={{ fill: 'var(--text3)', fontSize: 10 }} tickLine={false}/>
+                    <YAxis tick={{ fill: 'var(--text3)', fontSize: 10 }} tickLine={false} axisLine={false}/>
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--bg2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '10px',
+                        fontSize: '12px',
+                        color: 'var(--text)',
+                      }}
+                    />
+                    {target > 0 && (
+                      <ReferenceLine y={target} stroke="var(--warm)" strokeDasharray="4 4"
+                        label={{ value: 'Target', fill: 'var(--warm)', fontSize: 10 }}/>
+                    )}
+                    <Area type="monotone" dataKey="amount"
+                      stroke="var(--accent)" fill="url(#areaGrad)"
+                      strokeWidth={2} dot={{ fill: 'var(--accent)', r: 3 }}
+                      connectNulls={false}/>
+                    <Line type="monotone" dataKey="projected"
+                      stroke="var(--text3)" strokeDasharray="4 4"
+                      strokeWidth={1.5} dot={false} connectNulls/>
+                  </AreaChart>
+                </ResponsiveContainer>
+                <div className="chart-legend">
+                  <span className="legend-item"><span className="legend-dot" style={{background:'var(--accent)'}}/> Actual</span>
+                  <span className="legend-item"><span className="legend-dash"/> Projected</span>
+                  {target > 0 && <span className="legend-item"><span className="legend-dash" style={{background:'var(--warm)'}}/> Target</span>}
                 </div>
-                <div className="projection-row">
-                  <span className="proj-label">Days to target</span>
-                  <span className="proj-value">{proj.daysLeft===0?'Done!':proj.daysLeft+' days'}</span>
-                </div>
-                <div className="projection-row">
-                  <span className="proj-label">Est. completion</span>
-                  <span className={`proj-value ${proj.daysLeft===0?'proj-done':''}`}>{proj.eta}</span>
-                </div>
-                {data.targetDate && proj.daysLeft>0 && (
-                  <div className="projection-row">
-                    <span className="proj-label">Status</span>
-                    <span className={`proj-value ${Date.now()+proj.daysLeft*86400000<=new Date(data.targetDate).getTime()?'proj-on-track':'proj-behind'}`}>
-                      {Date.now()+proj.daysLeft*86400000<=new Date(data.targetDate).getTime()?'✓ On track':'⚠ Behind'}
-                    </span>
-                  </div>
-                )}
-                {/* Sparkline */}
-                {data.snapshots?.length>=2 && (
-                  <div className="sparkline-wrap">
-                    <MiniSparkline snapshots={data.snapshots} target={data.target}/>
-                  </div>
-                )}
               </div>
             )}
+          </div>
+        )}
 
-            {/* Actions */}
-            <div className="resource-actions-row">
-              <button className="resource-action-btn" onClick={()=>togglePin(resource.id)}>
-                {data.pinned?'📌 Unpin':'📍 Pin to top'}
-              </button>
-              {isCustom && (
-                <button className="resource-action-btn danger" onClick={()=>deleteCustom(resource.id)}>Remove</button>
-              )}
-            </div>
+        {/* HISTORY TAB */}
+        {activeTab === 'history' && (
+          <div className="sheet-tab-content">
+            {recentLogs.length === 0 ? (
+              <div className="sheet-empty">No logs yet. Tap Log to start tracking.</div>
+            ) : (
+              <div className="history-list">
+                {recentLogs.map(log => {
+                  const lt = LOG_TYPES.find(t => t.id === log.logType);
+                  return (
+                    <div key={log.id} className="history-entry">
+                      <div className="history-entry-left">
+                        <span className="history-type-dot" style={{ background: lt?.color }}/>
+                        <div>
+                          <div className="history-amount">{fmtNum(log.amount)}</div>
+                          {log.note && <div className="history-note">{log.note}</div>}
+                        </div>
+                      </div>
+                      <div className="history-entry-right">
+                        <div className="history-type">{lt?.label}</div>
+                        <div className="history-date">{dayLabel(log.date)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
-    );
-  };
+    </div>
+  );
+}
+
+// ── Compact resource card
+function ResourceCard({ resource, data, logs, onTap }) {
+  const current = data?.current || 0;
+  const target = data?.target || 0;
+  const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : null;
+
+  const recentLogs = (logs || []).filter(l => l.resourceId === resource.id)
+    .sort((a, b) => b.date - a.date);
+  const lastLog = recentLogs[0];
+  const prevLog = recentLogs[1];
+  const change = lastLog && prevLog ? lastLog.amount - prevLog.amount : null;
+
+  const dailyRate = calcDailyRate(recentLogs);
+  const proj = target > 0 && dailyRate ? calcProjection(current, target, dailyRate) : null;
 
   return (
-    <div className="backpack-wrap">
+    <button className="resource-compact-card" onClick={() => onTap(resource)}>
+      <ResourceIcon resourceId={resource.id} size={30}/>
+
+      <div className="rcc-body">
+        <div className="rcc-name-row">
+          <span className="rcc-name">{resource.name}</span>
+          {proj && <span className="rcc-eta">{proj.eta}</span>}
+        </div>
+
+        <div className="rcc-values-row">
+          <span className="rcc-current">{fmtNum(current)}</span>
+          {target > 0 && <span className="rcc-target"> / {fmtNum(target)}</span>}
+          {pct !== null && <span className="rcc-pct">{pct}%</span>}
+          {change !== null && (
+            <span className="rcc-change" style={{ color: change >= 0 ? 'var(--sage)' : 'var(--rose)' }}>
+              {change >= 0 ? '+' : ''}{fmtNum(change)}
+            </span>
+          )}
+        </div>
+
+        {pct !== null && (
+          <div className="rcc-track">
+            <div className="rcc-fill" style={{ width: `${pct}%` }}/>
+          </div>
+        )}
+      </div>
+
+      <span className="rcc-chevron">›</span>
+    </button>
+  );
+}
+
+// ── Main Backpack
+export default function Backpack() {
+  const [resourceData, setResourceData] = useLocalStorage('backpack_data', {});
+  const [resourceLogs, setResourceLogs] = useLocalStorage('backpack_logs', []);
+  const [customResources, setCustomResources] = useLocalStorage('backpack_custom', []);
+  const [category, setCategory] = useState('all');
+  const [activeSheet, setActiveSheet] = useState(null);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
+
+  const allResources = [
+    ...DEFAULT_RESOURCES,
+    ...customResources.map(r => ({ ...r, priority: 999 })),
+  ];
+
+  const filtered = allResources.filter(r => category === 'all' || r.category === category);
+
+  const getData = useCallback((id) => resourceData[id] || { current: 0, target: 0, targetDate: '' }, [resourceData]);
+  const getLogs = useCallback(() => resourceLogs, [resourceLogs]);
+
+  const handleSave = useCallback((id, newData, logEntry) => {
+    setResourceData(prev => ({ ...prev, [id]: { ...(prev[id] || {}), ...newData } }));
+    if (logEntry) {
+      setResourceLogs(prev => [logEntry, ...prev].slice(0, 500));
+    }
+  }, [setResourceData, setResourceLogs]);
+
+  const addCustomResource = () => {
+    if (!customName.trim()) return;
+    setCustomResources(prev => [...prev, {
+      id: `custom_${Date.now()}`,
+      name: customName.trim(),
+      category: 'custom',
+    }]);
+    setCustomName('');
+    setShowAddCustom(false);
+  };
+
+  // Summary
+  const withTargets = allResources.filter(r => getData(r.id).target > 0);
+  const onTrack = withTargets.filter(r => {
+    const d = getData(r.id);
+    const logs = resourceLogs.filter(l => l.resourceId === r.id);
+    const rate = calcDailyRate(logs);
+    const proj = rate ? calcProjection(d.current, d.target, rate) : null;
+    if (!proj || !d.targetDate) return !!proj;
+    return Date.now() + proj.daysLeft * 86400000 <= new Date(d.targetDate).getTime();
+  });
+  const behind = withTargets.length - onTrack.length;
+
+  return (
+    <div className="backpack-v3">
+
       {/* Summary strip */}
-      {withTargets.length>0 && (
-        <div className="backpack-summary">
-          <div className="summary-stat">
-            <div className="summary-num">{withTargets.length}</div>
-            <div className="summary-lbl">Tracked</div>
-          </div>
-          <div className="summary-divider"/>
-          <div className="summary-stat">
-            <div className="summary-num" style={{color:'var(--sage)'}}>{onTrack.length}</div>
-            <div className="summary-lbl">On track</div>
-          </div>
-          <div className="summary-divider"/>
-          <div className="summary-stat">
-            <div className="summary-num" style={{color:behind>0?'var(--rose)':'var(--text3)'}}>{behind}</div>
-            <div className="summary-lbl">Behind</div>
-          </div>
+      {withTargets.length > 0 && (
+        <div className="bp-summary">
+          <div className="bp-stat"><span className="bp-stat-n">{withTargets.length}</span><span className="bp-stat-l">Tracked</span></div>
+          <div className="bp-stat-div"/>
+          <div className="bp-stat"><span className="bp-stat-n" style={{color:'var(--sage)'}}>{onTrack.length}</span><span className="bp-stat-l">On track</span></div>
+          <div className="bp-stat-div"/>
+          <div className="bp-stat"><span className="bp-stat-n" style={{color:behind>0?'var(--rose)':'var(--text3)'}}>{behind}</span><span className="bp-stat-l">Behind</span></div>
         </div>
       )}
 
       {/* Category chips */}
-      <div className="chip-row" style={{padding:'0 14px 0',marginBottom:'4px'}}>
-        {CATEGORIES.map(c=>(
+      <div className="chip-row" style={{padding:'0 14px',margin:'8px 0 4px'}}>
+        {CATEGORIES.map(c => (
           <button key={c.id} className={`chip chip-sm ${category===c.id?'active':''}`}
-            onClick={()=>setCategory(c.id)}>{c.label}</button>
+            onClick={() => setCategory(c.id)}>{c.label}</button>
         ))}
       </div>
 
       {/* Resource list */}
-      <div className="resource-list-compact">
-        {displayResources.map(r=><ResourceRow key={r.id} resource={r}/>)}
+      <div className="bp-resource-list">
+        {filtered.map(r => (
+          <ResourceCard
+            key={r.id}
+            resource={r}
+            data={getData(r.id)}
+            logs={resourceLogs}
+            onTap={setActiveSheet}
+          />
+        ))}
+
+        {/* Add custom */}
+        {showAddCustom ? (
+          <div className="bp-add-custom-form">
+            <input
+              type="text"
+              className="text-input"
+              value={customName}
+              onChange={e => setCustomName(e.target.value)}
+              onKeyDown={e => e.key==='Enter' && addCustomResource()}
+              placeholder="Resource name"
+              autoFocus
+              autoComplete="off"
+            />
+            <div className="form-row" style={{marginTop:'8px'}}>
+              <button className="btn-primary" onClick={addCustomResource}>Add</button>
+              <button className="btn-ghost" onClick={()=>setShowAddCustom(false)}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <button className="bp-add-btn" onClick={()=>setShowAddCustom(true)}>
+            + Add custom resource
+          </button>
+        )}
       </div>
 
-      {/* Add custom */}
-      {showAddCustom ? (
-        <div className="resource-row" style={{margin:'8px 14px',padding:'12px'}}>
-          <input autoFocus className="text-input" value={customForm.name}
-            onChange={e=>setCustomForm(f=>({...f,name:e.target.value}))}
-            onKeyDown={e=>e.key==='Enter'&&addCustomResource()}
-            placeholder="Resource name" style={{marginBottom:'8px'}}/>
-          <div className="form-row">
-            <button className="btn-primary" onClick={addCustomResource}>Add</button>
-            <button className="btn-ghost" onClick={()=>setShowAddCustom(false)}>Cancel</button>
-          </div>
-        </div>
-      ) : (
-        <button className="add-resource-btn" onClick={()=>setShowAddCustom(true)}>
-          + Add custom resource
-        </button>
+      {/* Bottom sheet */}
+      {activeSheet && (
+        <ResourceSheet
+          resource={activeSheet}
+          data={getData(activeSheet.id)}
+          logs={resourceLogs}
+          onClose={() => setActiveSheet(null)}
+          onSave={handleSave}
+        />
       )}
     </div>
   );
