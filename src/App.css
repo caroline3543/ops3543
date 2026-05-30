@@ -735,8 +735,8 @@ input, select, textarea { font-family: inherit; color: var(--text); }
   0%,100% { opacity:0.5; } 50% { opacity:0.8; }
 }
 @keyframes sparkRise {
-  0%   { transform: translateY(0)   opacity:1; }
-  100% { transform: translateY(-18px) opacity:0; }
+  0%   { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-18px); opacity: 0; }
 }
 
 .flame-1 { transform-origin: center bottom; animation: flicker1 1.8s ease-in-out infinite; }
