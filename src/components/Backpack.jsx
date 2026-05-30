@@ -169,10 +169,25 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
 
   return (
     <div className="sheet-overlay" onClick={onClose}>
-      <div className="sheet-panel" onClick={e => e.stopPropagation()}>
-
+      <div
+        className="sheet-panel"
+        onClick={e => e.stopPropagation()}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '88svh',
+          maxHeight: '88svh',
+          borderRadius: '20px 20px 0 0',
+          background: '#262218',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
         {/* ── STICKY TOP — never scrolls ── */}
-        <div className="sheet-sticky-top">
+        <div
+          className="sheet-sticky-top"
+          style={{ flexShrink: 0, background: '#262218', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}
+        >
           <div className="sheet-handle"/>
 
           {/* Header */}
@@ -248,7 +263,17 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
         </div>
 
         {/* ── SCROLLABLE BODY ── */}
-        <div className="sheet-scrollable">
+        <div
+          className="sheet-scrollable"
+          style={{
+            flex: '1 1 0%',
+            minHeight: 0,
+            overflowY: 'scroll',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehaviorY: 'contain',
+            paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 20px))',
+          }}
+        >
 
           {/* LOG TAB */}
           {activeTab === 'log' && (

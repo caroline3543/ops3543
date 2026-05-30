@@ -1623,13 +1623,282 @@ input, select, textarea { font-family: inherit; color: var(--text); }
 
 /* ── Bottom Sheet ── */
 /* ═══════════════════════════════════════════════
-   BACKPACK BOTTOM SHEET — native iOS feel
-   Key principle: sheet-panel is flex column.
-   sheet-sticky-top = flex-shrink:0, never scrolls.
-   sheet-scrollable = flex:1, overflow-y:scroll,
-   -webkit-overflow-scrolling:touch.
-   body.sheet-open locks the page beneath.
+   BACKPACK BOTTOM SHEET — iOS scroll fix v3
+   Uses position:fixed + explicit heights so iOS
+   Safari actually scrolls the inner content.
 ═══════════════════════════════════════════════ */
+
+body.sheet-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: flex-end;
+  touch-action: none;
+}
+
+/* Panel — fixed height, flex column */
+.sheet-panel {
+  width: 100%;
+  height: 88svh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px 20px 0 0;
+  background: #262218;
+  border-top: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 -12px 48px rgba(0,0,0,0.6);
+  /* DO NOT set overflow here */
+  position: relative;
+}
+@media (prefers-color-scheme: light) {
+  .sheet-panel { background: #f5f0e8; border-top-color: rgba(0,0,0,0.1); }
+}
+
+/* Sticky top — fixed height so scrollable below can calculate */
+.sheet-sticky-top {
+  flex-shrink: 0;
+  background: #262218;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 8px;
+}
+@media (prefers-color-scheme: light) {
+  .sheet-sticky-top { background: #f5f0e8; border-bottom-color: rgba(0,0,0,0.07); }
+}
+
+/* Scrollable — takes remaining height, MUST scroll */
+.sheet-scrollable {
+  flex: 1;
+  min-height: 0;          /* Critical for iOS flex scroll */
+  overflow-y: scroll;     /* scroll not auto — iOS needs this */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 20px));
+}
+
+.sheet-handle {
+  width: 40px; height: 4px; border-radius: 99px;
+  background: rgba(255,255,255,0.25);
+  margin: 12px auto 8px;
+  flex-shrink: 0;
+}
+@media (prefers-color-scheme: light) { .sheet-handle { background: rgba(0,0,0,0.18); } }
+
+.sheet-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px 8px; gap: 10px;
+}
+.sheet-header-left {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+}
+.sheet-resource-name {
+  font-size: 17px; font-weight: 800; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (prefers-color-scheme: light) { .sheet-resource-name { color: #1a1510; } }
+
+.sheet-resource-meta {
+  font-size: 12px; color: rgba(255,255,255,0.5);
+  margin-top: 2px; font-variant-numeric: tabular-nums;
+}
+@media (prefers-color-scheme: light) { .sheet-resource-meta { color: rgba(0,0,0,0.45); } }
+
+.sheet-current { font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.sheet-sep     { color: rgba(255,255,255,0.3); margin: 0 2px; }
+.sheet-target  { color: rgba(255,255,255,0.45); font-variant-numeric: tabular-nums; }
+.sheet-pct     { color: var(--accent); font-weight: 800; margin-left: 4px; }
+@media (prefers-color-scheme: light) {
+  .sheet-current { color: #1a1510; }
+  .sheet-sep     { color: rgba(0,0,0,0.25); }
+  .sheet-target  { color: rgba(0,0,0,0.4); }
+}
+
+.sheet-close {
+  width: 32px; height: 32px; min-width: 32px; border-radius: 99px;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.75); font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.15s;
+}
+.sheet-close:active { background: rgba(255,255,255,0.22); }
+@media (prefers-color-scheme: light) {
+  .sheet-close { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.12); color: rgba(0,0,0,0.6); }
+}
+
+.sheet-progress-track {
+  height: 4px; background: rgba(255,255,255,0.1);
+  margin: 0 16px 10px; border-radius: 99px; overflow: hidden;
+}
+@media (prefers-color-scheme: light) { .sheet-progress-track { background: rgba(0,0,0,0.1); } }
+.sheet-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #fff));
+  border-radius: 99px; transition: width 0.7s ease;
+}
+
+/* Summary grid */
+.sheet-summary-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  margin: 0 16px 10px;
+  border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;
+}
+@media (prefers-color-scheme: light) { .sheet-summary-grid { border-color: rgba(0,0,0,0.09); } }
+.sheet-summary-cell {
+  padding: 9px 8px; text-align: center;
+  background: rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.sheet-summary-cell:last-child { border-right: none; }
+@media (prefers-color-scheme: light) {
+  .sheet-summary-cell { background: rgba(0,0,0,0.03); border-right-color: rgba(0,0,0,0.07); }
+}
+.sheet-summary-val {
+  font-size: 13px; font-weight: 800; color: #fff;
+  font-variant-numeric: tabular-nums; line-height: 1.2;
+}
+@media (prefers-color-scheme: light) { .sheet-summary-val { color: #1a1510; } }
+.sheet-summary-lbl {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.4); text-transform: uppercase; margin-top: 3px;
+}
+@media (prefers-color-scheme: light) { .sheet-summary-lbl { color: rgba(0,0,0,0.38); } }
+
+/* Tabs */
+.sheet-tabs {
+  display: flex; margin: 0 16px 0;
+  background: rgba(255,255,255,0.07); border-radius: 10px;
+  padding: 3px; border: 1px solid rgba(255,255,255,0.1);
+}
+@media (prefers-color-scheme: light) {
+  .sheet-tabs { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.09); }
+}
+.sheet-tab {
+  flex: 1; padding: 8px 0; min-height: 38px;
+  border-radius: 8px; font-size: 13px; font-weight: 700;
+  color: rgba(255,255,255,0.55); background: transparent;
+  border: none; cursor: pointer; transition: all 0.15s;
+}
+@media (prefers-color-scheme: light) { .sheet-tab { color: rgba(0,0,0,0.45); } }
+.sheet-tab.active { background: var(--accent); color: #fff; box-shadow: 0 1px 6px rgba(0,0,0,0.25); }
+
+.sheet-tab-content {
+  padding: 14px 16px 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+/* Log type segmented */
+.sheet-log-type-section { display: flex; flex-direction: column; gap: 5px; }
+.sheet-log-type-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  color: rgba(255,255,255,0.5); text-transform: uppercase;
+}
+@media (prefers-color-scheme: light) { .sheet-log-type-label { color: rgba(0,0,0,0.4); } }
+.log-type-segment {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: rgba(255,255,255,0.07); border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1); padding: 3px; gap: 2px;
+}
+@media (prefers-color-scheme: light) {
+  .log-type-segment { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.09); }
+}
+.log-seg-btn {
+  padding: 8px 4px; border-radius: 8px; font-size: 10px; font-weight: 800;
+  border: none; cursor: pointer; min-height: 36px;
+  text-align: center; transition: all 0.15s; line-height: 1.2;
+  background: transparent; color: rgba(255,255,255,0.6);
+}
+@media (prefers-color-scheme: light) { .log-seg-btn { color: rgba(0,0,0,0.5); } }
+.log-seg-btn:active { background: rgba(255,255,255,0.08); }
+.log-seg-btn.active {
+  background: var(--lt-color, var(--accent)); color: #fff; font-weight: 800;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.3);
+}
+
+/* Inputs */
+.sheet-input-group { display: flex; flex-direction: column; gap: 4px; }
+.sheet-input-section-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  color: rgba(255,255,255,0.5); text-transform: uppercase; margin-top: 4px;
+}
+@media (prefers-color-scheme: light) { .sheet-input-section-label { color: rgba(0,0,0,0.4); } }
+.sheet-tab-content .input-label {
+  font-size: 10px !important; font-weight: 800 !important; letter-spacing: 0.8px;
+  color: rgba(255,255,255,0.55) !important; text-transform: uppercase;
+}
+@media (prefers-color-scheme: light) {
+  .sheet-tab-content .input-label { color: rgba(0,0,0,0.45) !important; }
+}
+.sheet-input {
+  background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.2);
+  border-radius: 10px; padding: 10px 13px; color: #fff;
+  font-size: 16px; width: 100%; outline: none;
+  -webkit-appearance: none; appearance: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-color-scheme: light) {
+  .sheet-input { background: rgba(255,255,255,0.85); border-color: rgba(0,0,0,0.15); color: #1a1510; }
+}
+.sheet-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.sheet-input::placeholder { color: rgba(255,255,255,0.35); }
+@media (prefers-color-scheme: light) { .sheet-input::placeholder { color: rgba(0,0,0,0.3); } }
+.sheet-input-row { display: flex; gap: 8px; }
+.sheet-log-btn { width: 100%; justify-content: center; min-height: 44px; font-size: 15px; font-weight: 800; }
+.sheet-save-target-btn { width: 100%; justify-content: center; font-size: 14px; }
+.sheet-divider { height: 1px; background: rgba(255,255,255,0.09); margin: 4px 0; }
+@media (prefers-color-scheme: light) { .sheet-divider { background: rgba(0,0,0,0.07); } }
+
+/* Stats row compat */
+.sheet-stats-row {
+  display: flex; margin: 0 16px 10px;
+  background: rgba(255,255,255,0.06); border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1); overflow: hidden;
+}
+.sheet-stat { flex: 1; padding: 8px 6px; text-align: center; border-right: 1px solid rgba(255,255,255,0.08); }
+.sheet-stat:last-child { border-right: none; }
+.sheet-stat-val { font-size: 13px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.sheet-stat-lbl { font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Chart */
+.sheet-chart-wrap { margin: 0 -4px; }
+.chart-legend { display: flex; gap: 12px; margin-top: 8px; justify-content: center; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: rgba(255,255,255,0.5); }
+@media (prefers-color-scheme: light) { .legend-item { color: rgba(0,0,0,0.45); } }
+.legend-dot  { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; }
+.legend-dash { width: 14px; height: 2px; background: rgba(255,255,255,0.4); border-radius: 99px; flex-shrink: 0; }
+
+/* History */
+.history-list { display: flex; flex-direction: column; gap: 4px; }
+.history-entry {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 9px 12px; background: rgba(255,255,255,0.06);
+  border-radius: 10px; border: 1px solid rgba(255,255,255,0.09);
+}
+@media (prefers-color-scheme: light) { .history-entry { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.07); } }
+.history-entry-left { display: flex; align-items: flex-start; gap: 9px; flex: 1; min-width: 0; }
+.history-type-dot { width: 7px; height: 7px; border-radius: 99px; flex-shrink: 0; margin-top: 5px; }
+.history-amount { font-size: 15px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+@media (prefers-color-scheme: light) { .history-amount { color: #1a1510; } }
+.history-change { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.history-note { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+@media (prefers-color-scheme: light) { .history-note { color: rgba(0,0,0,0.4); } }
+.history-entry-right { text-align: right; flex-shrink: 0; margin-left: 8px; }
+.history-type { font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.5px; }
+@media (prefers-color-scheme: light) { .history-type { color: rgba(0,0,0,0.4); } }
+.history-date { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+@media (prefers-color-scheme: light) { .history-date { color: rgba(0,0,0,0.35); } }
+
+.sheet-empty {
+  text-align: center; padding: 40px 16px;
+  color: rgba(255,255,255,0.4); font-size: 14px; font-style: italic; line-height: 1.7;
+}
+@media (prefers-color-scheme: light) { .sheet-empty { color: rgba(0,0,0,0.35); } }
 
 body.sheet-open {
   overflow: hidden !important;
