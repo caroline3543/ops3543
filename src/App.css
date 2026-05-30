@@ -1,122 +1,366 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
+@import './tokens.css';
 
 /* ─────────────────────────────────────────────
-   DESIGN TOKENS
+   BRIDGE ALIASES — maps old vars to new tokens
+   Keeps all existing components working while
+   new components use tokens directly.
 ───────────────────────────────────────────── */
 :root {
-  /* Base warm cream — no location */
-  --bg:          #f5f0ea;
-  --bg2:         #ede6dc;
-  --bg3:         #e4dbd0;
+  /* Old name → new token */
+  --bg:          var(--bg-page);
+  --bg2:         var(--bg-card-solid);
+  --bg3:         var(--bg-inset);
+  --glass:       var(--glass-bg);
+  --glass-strong:var(--bg-input);
+  --glass-shadow-lg: var(--glass-shadow);
+  --text:        var(--text-1);
+  --text2:       var(--text-2);
+  --text3:       var(--text-3);
+  --border2:     var(--border-strong);
   --glow-a:      rgba(180,155,110,0.2);
   --glow-b:      rgba(150,125,85,0.12);
-
-  /* Glass */
-  --glass:       rgba(255,255,255,0.55);
-  --glass-strong:rgba(255,255,255,0.75);
-  --glass-border:rgba(255,255,255,0.7);
-  --glass-shadow:0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
-  --glass-shadow-lg: 0 8px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.05);
-
-  /* Semantic */
-  --accent:      #7a9e8a;
-  --accent-dim:  rgba(122,158,138,0.14);
-  --accent-glow: rgba(122,158,138,0.08);
-  --warm:        #c4824a;
-  --warm-dim:    rgba(196,130,74,0.13);
-  --rose:        #c47a6a;
-  --rose-dim:    rgba(196,122,106,0.12);
-  --gold:        #c49a4a;
-  --gold-dim:    rgba(196,154,74,0.14);
-  --sage:        #7aab8a;
-  --sage-dim:    rgba(122,171,138,0.12);
-  --purple:      #9a8aba;
-
-  /* Text */
-  --text:        #1e1a14;
-  --text2:       #6b6050;
-  --text3:       #a89880;
-
-  /* Radius */
-  --r:           18px;
-  --r-sm:        12px;
-  --r-xs:        8px;
-
-  /* Typography */
-  --font:        'Inter', system-ui, sans-serif;
-  --serif:       'Instrument Serif', Georgia, serif;
-
-  /* Transitions */
-  --ease:        cubic-bezier(0.4, 0, 0.2, 1);
-  --spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
+  --gold:        var(--amber);
+  --gold-dim:    var(--amber-dim);
+  --sage-dim:    var(--green-dim);
+  --purple:      var(--blue);
+  --font:        var(--sans);
 }
 
-/* ── Location themes ── */
+/* ════════════════════════════════════════════
+   LOCATION THEMES
+   Each location has a distinct visual identity
+   in both light and dark mode.
+════════════════════════════════════════════ */
+
+/* ── Aotearoa / New Zealand
+   Light: forest fern green, silver fern cream
+   Dark:  deep bush night, bioluminescent green ── */
 .app[data-loc="nz"] {
-  --bg:         #eef5ec; --bg2: #e4f0e0; --bg3: #d8ecd4;
-  --glow-a:     rgba(90,160,90,0.18); --glow-b: rgba(60,130,60,0.10);
-  --accent:     #5a9a6a; --accent-dim: rgba(90,154,106,0.14);
-  --accent-glow:rgba(90,154,106,0.08);
-  --text:       #182418; --text2: #4a6a4a; --text3: #88a888;
+  --bg-page:       #ecf5e8;
+  --bg-card:       rgba(255,255,255,0.65);
+  --bg-card-solid: #f4faf0;
+  --bg-modal:      #f0f8ec;
+  --bg-input:      rgba(255,255,255,0.82);
+  --bg-inset:      rgba(60,120,60,0.06);
+  --bg-inset-2:    rgba(60,120,60,0.10);
+  --bg-seg:        rgba(60,120,60,0.07);
+  --accent:        #3d8a52;
+  --accent-bright: #4da066;
+  --accent-dim:    rgba(61,138,82,0.15);
+  --border:        rgba(40,100,40,0.12);
+  --border-strong: rgba(40,100,40,0.22);
+  --border-input:  rgba(40,100,40,0.20);
+  --glass-bg:      rgba(255,255,255,0.52);
+  --glass-border:  rgba(255,255,255,0.72);
+  --text-1:  #0e2010;
+  --text-2:  #2a5030;
+  --text-3:  #6a9a6a;
+  --text-4:  #a8c8a0;
+  --glow-a:  rgba(80,160,80,0.20);
+  --glow-b:  rgba(50,120,50,0.12);
 }
-.app[data-loc="japan"] {
-  --bg:         #faf4f6; --bg2: #f5eaee; --bg3: #ede0e5;
-  --glow-a:     rgba(200,130,150,0.18); --glow-b: rgba(170,100,120,0.10);
-  --accent:     #b07080; --accent-dim: rgba(176,112,128,0.13);
-  --accent-glow:rgba(176,112,128,0.07);
-  --text:       #281820; --text2: #7a5060; --text3: #b890a0;
-}
-.app[data-loc="thailand"] {
-  --bg:         #faf7ee; --bg2: #f5f0e0; --bg3: #ede8d0;
-  --glow-a:     rgba(210,165,50,0.2); --glow-b: rgba(180,135,30,0.12);
-  --accent:     #b89030; --accent-dim: rgba(184,144,48,0.14);
-  --accent-glow:rgba(184,144,48,0.08);
-  --text:       #281e08; --text2: #7a5820; --text3: #b09860;
-}
-.app[data-loc="pnw"] {
-  --bg:         #eef4ee; --bg2: #e4ede0; --bg3: #d8e8d2;
-  --glow-a:     rgba(70,120,70,0.16); --glow-b: rgba(50,100,50,0.10);
-  --accent:     #4a8a5a; --accent-dim: rgba(74,138,90,0.13);
-  --accent-glow:rgba(74,138,90,0.07);
-  --text:       #142014; --text2: #486048; --text3: #88a880;
-}
-.app[data-loc="scotland"] {
-  --bg:         #f4f0f8; --bg2: #ece6f4; --bg3: #e0d8ec;
-  --glow-a:     rgba(140,90,180,0.16); --glow-b: rgba(110,70,150,0.10);
-  --accent:     #8a5aaa; --accent-dim: rgba(138,90,170,0.13);
-  --accent-glow:rgba(138,90,170,0.07);
-  --text:       #201428; --text2: #624878; --text3: #a888b8;
-}
-.app[data-loc="okinawa"] {
-  --bg:         #eef8f8; --bg2: #e2f2f2; --bg3: #d4eaea;
-  --glow-a:     rgba(50,170,170,0.18); --glow-b: rgba(30,150,150,0.10);
-  --accent:     #3a9898; --accent-dim: rgba(58,152,152,0.14);
-  --accent-glow:rgba(58,152,152,0.08);
-  --text:       #0c2424; --text2: #386868; --text3: #78a8a8;
+@media (prefers-color-scheme: dark) {
+  .app[data-loc="nz"] {
+    --bg-page:       #081208;
+    --bg-card:       rgba(255,255,255,0.04);
+    --bg-card-solid: #0e1a0c;
+    --bg-modal:      #0c1a0a;
+    --bg-input:      rgba(255,255,255,0.07);
+    --bg-inset:      rgba(80,200,80,0.04);
+    --bg-inset-2:    rgba(80,200,80,0.07);
+    --bg-seg:        rgba(80,200,80,0.05);
+    --accent:        #5abf70;
+    --accent-bright: #70cf88;
+    --accent-dim:    rgba(90,191,112,0.18);
+    --border:        rgba(80,180,80,0.12);
+    --border-strong: rgba(80,180,80,0.22);
+    --border-input:  rgba(80,180,80,0.22);
+    --glass-bg:      rgba(10,28,10,0.70);
+    --glass-border:  rgba(80,180,80,0.10);
+    --text-1:  #d8f0d0;
+    --text-2:  #80b880;
+    --text-3:  #4a7848;
+    --text-4:  #2a4828;
+    --glow-a:  rgba(60,180,60,0.22);
+    --glow-b:  rgba(40,140,40,0.12);
+  }
 }
 
-/* ── Dark mode ── */
+/* ── Japan
+   Light: sakura pink, rice paper white
+   Dark:  ink-black night, lantern amber, blossom glow ── */
+.app[data-loc="japan"] {
+  --bg-page:       #fdf4f6;
+  --bg-card:       rgba(255,255,255,0.68);
+  --bg-card-solid: #fff8fa;
+  --bg-modal:      #fdf6f8;
+  --bg-input:      rgba(255,255,255,0.88);
+  --bg-inset:      rgba(180,80,100,0.05);
+  --bg-inset-2:    rgba(180,80,100,0.09);
+  --bg-seg:        rgba(180,80,100,0.06);
+  --accent:        #c0607a;
+  --accent-bright: #d07090;
+  --accent-dim:    rgba(192,96,122,0.14);
+  --border:        rgba(180,80,100,0.12);
+  --border-strong: rgba(180,80,100,0.22);
+  --border-input:  rgba(180,80,100,0.18);
+  --glass-bg:      rgba(255,248,250,0.55);
+  --glass-border:  rgba(255,200,210,0.60);
+  --text-1:  #200e16;
+  --text-2:  #6a3048;
+  --text-3:  #c090a0;
+  --text-4:  #e0b8c8;
+  --glow-a:  rgba(220,120,150,0.20);
+  --glow-b:  rgba(180,90,120,0.12);
+}
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg:          #0f0e0c; --bg2: #161410; --bg3: #1e1a14;
-    --glow-a:      rgba(120,100,60,0.25); --glow-b: rgba(80,65,35,0.15);
-    --glass:       rgba(30,26,18,0.6);
-    --glass-strong:rgba(40,34,24,0.8);
-    --glass-border:rgba(255,255,255,0.08);
-    --glass-shadow:0 4px 24px rgba(0,0,0,0.3), 0 1px 4px rgba(0,0,0,0.2);
-    --glass-shadow-lg: 0 8px 40px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.25);
-    --text:        #f0ece4; --text2: #9a8a70; --text3: #5a5040;
-    --accent:      #8ab49a;
-    --warm:        #d49a6a;
+  .app[data-loc="japan"] {
+    --bg-page:       #120608;
+    --bg-card:       rgba(255,255,255,0.04);
+    --bg-card-solid: #1c0c10;
+    --bg-modal:      #1a0a0e;
+    --bg-input:      rgba(255,255,255,0.07);
+    --bg-inset:      rgba(220,100,130,0.05);
+    --bg-inset-2:    rgba(220,100,130,0.09);
+    --bg-seg:        rgba(220,100,130,0.06);
+    --accent:        #e07898;
+    --accent-bright: #f090b0;
+    --accent-dim:    rgba(224,120,152,0.18);
+    --border:        rgba(200,100,130,0.14);
+    --border-strong: rgba(200,100,130,0.24);
+    --border-input:  rgba(200,100,130,0.24);
+    --glass-bg:      rgba(28,10,14,0.72);
+    --glass-border:  rgba(200,100,130,0.12);
+    --text-1:  #fce8f0;
+    --text-2:  #d090a8;
+    --text-3:  #885870;
+    --text-4:  #4a2838;
+    --glow-a:  rgba(220,80,110,0.22);
+    --glow-b:  rgba(180,60,90,0.14);
   }
-  .app[data-loc="nz"]  { --bg:#0c1410; --bg2:#101a12; --bg3:#162018; --glass:rgba(16,26,18,0.6); --text:#e8f4e8; --text2:#6a9a6a; --text3:#3a6a3a; }
-  .app[data-loc="japan"]{ --bg:#140c10; --bg2:#1a1014; --bg3:#20141a; --glass:rgba(26,16,20,0.6); --text:#f4e8ec; --text2:#9a6878; --text3:#5a3848; }
-  .app[data-loc="thailand"]{ --bg:#120e04; --bg2:#181208; --bg3:#1e160a; --glass:rgba(24,18,8,0.6); --text:#f4edd8; --text2:#9a7838; --text3:#5a4818; }
-  .app[data-loc="pnw"] { --bg:#080e08; --bg2:#0c1410; --bg3:#101a12; --glass:rgba(12,20,14,0.6); --text:#e4f0e4; --text2:#589858; --text3:#285828; }
-  .app[data-loc="scotland"]{ --bg:#100c18; --bg2:#16101e; --bg3:#1c1428; --glass:rgba(22,16,30,0.6); --text:#ece4f4; --text2:#8868a8; --text3:#483868; }
-  .app[data-loc="okinawa"]{ --bg:#041414; --bg2:#081a1a; --bg3:#0c2020; --glass:rgba(8,26,26,0.6); --text:#d8f0f0; --text2:#488888; --text3:#185858; }
-  .bottom-nav { background: rgba(15,14,12,0.92) !important; }
-  .app-header { background: rgba(15,14,12,0.88) !important; }
+}
+
+/* ── Thailand
+   Light: golden temple, warm saffron, teak wood
+   Dark:  deep temple night, gold lanterns, indigo sky ── */
+.app[data-loc="thailand"] {
+  --bg-page:       #fdf8ec;
+  --bg-card:       rgba(255,255,255,0.65);
+  --bg-card-solid: #fffbf0;
+  --bg-modal:      #fdf9ee;
+  --bg-input:      rgba(255,255,255,0.86);
+  --bg-inset:      rgba(200,150,20,0.06);
+  --bg-inset-2:    rgba(200,150,20,0.10);
+  --bg-seg:        rgba(200,150,20,0.07);
+  --accent:        #b88820;
+  --accent-bright: #d09a2a;
+  --accent-dim:    rgba(184,136,32,0.14);
+  --border:        rgba(180,130,20,0.14);
+  --border-strong: rgba(180,130,20,0.24);
+  --border-input:  rgba(180,130,20,0.20);
+  --glass-bg:      rgba(255,252,235,0.55);
+  --glass-border:  rgba(240,210,120,0.55);
+  --text-1:  #201400;
+  --text-2:  #6a4808;
+  --text-3:  #b08840;
+  --text-4:  #d8b870;
+  --glow-a:  rgba(220,170,40,0.22);
+  --glow-b:  rgba(180,130,20,0.14);
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-loc="thailand"] {
+    --bg-page:       #100c00;
+    --bg-card:       rgba(255,255,255,0.04);
+    --bg-card-solid: #1c1600;
+    --bg-modal:      #1a1400;
+    --bg-input:      rgba(255,255,255,0.07);
+    --bg-inset:      rgba(220,170,40,0.05);
+    --bg-inset-2:    rgba(220,170,40,0.09);
+    --bg-seg:        rgba(220,170,40,0.06);
+    --accent:        #d4a030;
+    --accent-bright: #e8b840;
+    --accent-dim:    rgba(212,160,48,0.18);
+    --border:        rgba(200,150,30,0.14);
+    --border-strong: rgba(200,150,30,0.26);
+    --border-input:  rgba(200,150,30,0.26);
+    --glass-bg:      rgba(28,22,0,0.72);
+    --glass-border:  rgba(200,150,30,0.14);
+    --text-1:  #fff0c8;
+    --text-2:  #c8a050;
+    --text-3:  #806020;
+    --text-4:  #483800;
+    --glow-a:  rgba(220,160,20,0.25);
+    --glow-b:  rgba(160,110,10,0.15);
+  }
+}
+
+/* ── Pacific Northwest
+   Light: cedar forest, morning mist, fern green
+   Dark:  old growth night, rain dark, emerald glow ── */
+.app[data-loc="pnw"] {
+  --bg-page:       #ecf4ec;
+  --bg-card:       rgba(255,255,255,0.62);
+  --bg-card-solid: #f2faf0;
+  --bg-modal:      #eef6ec;
+  --bg-input:      rgba(255,255,255,0.82);
+  --bg-inset:      rgba(40,100,50,0.06);
+  --bg-inset-2:    rgba(40,100,50,0.10);
+  --bg-seg:        rgba(40,100,50,0.07);
+  --accent:        #2e7840;
+  --accent-bright: #3a9050;
+  --accent-dim:    rgba(46,120,64,0.14);
+  --border:        rgba(30,90,40,0.13);
+  --border-strong: rgba(30,90,40,0.23);
+  --border-input:  rgba(30,90,40,0.20);
+  --glass-bg:      rgba(245,255,245,0.52);
+  --glass-border:  rgba(180,220,180,0.55);
+  --text-1:  #081408;
+  --text-2:  #204828;
+  --text-3:  #6a9868;
+  --text-4:  #a8c8a0;
+  --glow-a:  rgba(50,130,60,0.20);
+  --glow-b:  rgba(30,100,40,0.12);
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-loc="pnw"] {
+    --bg-page:       #040c04;
+    --bg-card:       rgba(255,255,255,0.04);
+    --bg-card-solid: #0a1408;
+    --bg-modal:      #081208;
+    --bg-input:      rgba(255,255,255,0.07);
+    --bg-inset:      rgba(50,160,70,0.05);
+    --bg-inset-2:    rgba(50,160,70,0.09);
+    --bg-seg:        rgba(50,160,70,0.05);
+    --accent:        #48a85c;
+    --accent-bright: #5cc070;
+    --accent-dim:    rgba(72,168,92,0.18);
+    --border:        rgba(50,150,60,0.13);
+    --border-strong: rgba(50,150,60,0.24);
+    --border-input:  rgba(50,150,60,0.24);
+    --glass-bg:      rgba(6,18,6,0.74);
+    --glass-border:  rgba(50,150,60,0.12);
+    --text-1:  #c8e8c0;
+    --text-2:  #70a870;
+    --text-3:  #38683a;
+    --text-4:  #1a3818;
+    --glow-a:  rgba(40,160,50,0.22);
+    --glow-b:  rgba(20,120,30,0.14);
+  }
+}
+
+/* ── Scotland
+   Light: heather moor, thistle purple, highland grey
+   Dark:  stormy loch, northern lights, deep violet ── */
+.app[data-loc="scotland"] {
+  --bg-page:       #f4f0f8;
+  --bg-card:       rgba(255,255,255,0.64);
+  --bg-card-solid: #faf6ff;
+  --bg-modal:      #f6f2fa;
+  --bg-input:      rgba(255,255,255,0.86);
+  --bg-inset:      rgba(120,70,180,0.06);
+  --bg-inset-2:    rgba(120,70,180,0.10);
+  --bg-seg:        rgba(120,70,180,0.07);
+  --accent:        #7848aa;
+  --accent-bright: #9060c0;
+  --accent-dim:    rgba(120,72,170,0.14);
+  --border:        rgba(100,60,160,0.13);
+  --border-strong: rgba(100,60,160,0.23);
+  --border-input:  rgba(100,60,160,0.20);
+  --glass-bg:      rgba(250,246,255,0.54);
+  --glass-border:  rgba(200,170,240,0.55);
+  --text-1:  #160c22;
+  --text-2:  #503878;
+  --text-3:  #9870b8;
+  --text-4:  #c8a8e0;
+  --glow-a:  rgba(160,90,220,0.18);
+  --glow-b:  rgba(120,60,180,0.12);
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-loc="scotland"] {
+    --bg-page:       #08040e;
+    --bg-card:       rgba(255,255,255,0.04);
+    --bg-card-solid: #120a1c;
+    --bg-modal:      #100818;
+    --bg-input:      rgba(255,255,255,0.07);
+    --bg-inset:      rgba(150,90,220,0.05);
+    --bg-inset-2:    rgba(150,90,220,0.09);
+    --bg-seg:        rgba(150,90,220,0.06);
+    --accent:        #a060d8;
+    --accent-bright: #b878f0;
+    --accent-dim:    rgba(160,96,216,0.18);
+    --border:        rgba(140,80,200,0.14);
+    --border-strong: rgba(140,80,200,0.26);
+    --border-input:  rgba(140,80,200,0.26);
+    --glass-bg:      rgba(14,6,24,0.74);
+    --glass-border:  rgba(140,80,200,0.14);
+    --text-1:  #ecdcff;
+    --text-2:  #a878d8;
+    --text-3:  #604888;
+    --text-4:  #301848;
+    --glow-a:  rgba(140,70,210,0.24);
+    --glow-b:  rgba(100,40,170,0.16);
+  }
+}
+
+/* ── Okinawa
+   Light: coral reef teal, sea glass, tropical clear
+   Dark:  deep Pacific night, bioluminescent teal, reef glow ── */
+.app[data-loc="okinawa"] {
+  --bg-page:       #eaf8f8;
+  --bg-card:       rgba(255,255,255,0.65);
+  --bg-card-solid: #f2fdfd;
+  --bg-modal:      #eefafa;
+  --bg-input:      rgba(255,255,255,0.85);
+  --bg-inset:      rgba(20,160,170,0.06);
+  --bg-inset-2:    rgba(20,160,170,0.10);
+  --bg-seg:        rgba(20,160,170,0.07);
+  --accent:        #1a9898;
+  --accent-bright: #22b0b0;
+  --accent-dim:    rgba(26,152,152,0.14);
+  --border:        rgba(10,140,150,0.13);
+  --border-strong: rgba(10,140,150,0.23);
+  --border-input:  rgba(10,140,150,0.20);
+  --glass-bg:      rgba(234,252,252,0.54);
+  --glass-border:  rgba(150,230,230,0.55);
+  --text-1:  #041c1c;
+  --text-2:  #105858;
+  --text-3:  #50a0a0;
+  --text-4:  #90cece;
+  --glow-a:  rgba(30,180,180,0.20);
+  --glow-b:  rgba(10,150,160,0.12);
+}
+@media (prefers-color-scheme: dark) {
+  .app[data-loc="okinawa"] {
+    --bg-page:       #000e0e;
+    --bg-card:       rgba(255,255,255,0.04);
+    --bg-card-solid: #041818;
+    --bg-modal:      #041616;
+    --bg-input:      rgba(255,255,255,0.07);
+    --bg-inset:      rgba(20,200,200,0.05);
+    --bg-inset-2:    rgba(20,200,200,0.09);
+    --bg-seg:        rgba(20,200,200,0.06);
+    --accent:        #20c0c0;
+    --accent-bright: #2ad8d8;
+    --accent-dim:    rgba(32,192,192,0.18);
+    --border:        rgba(20,180,180,0.14);
+    --border-strong: rgba(20,180,180,0.26);
+    --border-input:  rgba(20,180,180,0.26);
+    --glass-bg:      rgba(0,20,20,0.76);
+    --glass-border:  rgba(20,180,180,0.14);
+    --text-1:  #c0f0f0;
+    --text-2:  #50b8b8;
+    --text-3:  #207878;
+    --text-4:  #084848;
+    --glow-a:  rgba(10,200,200,0.25);
+    --glow-b:  rgba(0,160,170,0.16);
+  }
+}
+
+/* ── Dark mode nav/header use location colour ── */
+@media (prefers-color-scheme: dark) {
+  .bottom-nav { background: color-mix(in srgb, var(--bg-page) 85%, transparent) !important; backdrop-filter: blur(20px); }
+  .app-header { background: color-mix(in srgb, var(--bg-page) 80%, transparent) !important; backdrop-filter: blur(20px); }
 }
 
 /* ── Reset ── */

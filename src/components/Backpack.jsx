@@ -178,7 +178,7 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
           height: '88svh',
           maxHeight: '88svh',
           borderRadius: '20px 20px 0 0',
-          background: '#262218',
+          background: 'var(--bg-modal)',
           overflow: 'hidden',
           position: 'relative',
         }}
@@ -186,7 +186,7 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
         {/* ── STICKY TOP — never scrolls ── */}
         <div
           className="sheet-sticky-top"
-          style={{ flexShrink: 0, background: '#262218', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}
+          style={{ flexShrink: 0, background: 'var(--bg-modal)', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}
         >
           <div className="sheet-handle"/>
 
@@ -350,7 +350,7 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
                   />
                 </div>
                 <div className="sheet-input-group" style={{ flex: 1 }}>
-                  <label className="input-label">By date</label>
+                  <label className="input-label">By date (optional)</label>
                   <input
                     type="date"
                     className="sheet-input"
@@ -359,6 +359,45 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
                   />
                 </div>
               </div>
+
+              {/* Smart projection — shows even without a target date */}
+              {targetInput && (() => {
+                const t = parseInt(targetInput, 10);
+                if (isNaN(t) || t <= 0) return null;
+                const remaining = t - current;
+                const hasDate = !!targetDateInput;
+                const targetDateMs = hasDate ? new Date(targetDateInput).getTime() : null;
+                const requiredPerDay = hasDate && targetDateMs > Date.now()
+                  ? Math.ceil(remaining / Math.max(1, (targetDateMs - Date.now()) / 86400000))
+                  : null;
+
+                return (
+                  <div className="projection-panel">
+                    {remaining <= 0 ? (
+                      <div className="proj-row"><span className="proj-lbl">Status</span><span className="proj-val" style={{color:'var(--green)'}}>✓ Already reached</span></div>
+                    ) : !dailyRate || dailyRate <= 0 ? (
+                      <>
+                        <div className="proj-row"><span className="proj-lbl">Remaining</span><span className="proj-val">{fmtNum(remaining)}</span></div>
+                        <div className="proj-row"><span className="proj-lbl">Projected</span><span className="proj-val" style={{color:'var(--red)'}}>Not enough data yet</span></div>
+                      </>
+                    ) : (() => {
+                      const daysLeft = Math.ceil(remaining / dailyRate);
+                      const etaDate = new Date(Date.now() + daysLeft * 86400000);
+                      const etaStr = etaDate.toLocaleDateString('en-NZ', { month:'short', day:'numeric', year:'numeric' });
+                      const onTrack = !hasDate || (Date.now() + daysLeft * 86400000 <= targetDateMs);
+                      return (
+                        <>
+                          <div className="proj-row"><span className="proj-lbl">Remaining</span><span className="proj-val">{fmtNum(remaining)}</span></div>
+                          <div className="proj-row"><span className="proj-lbl">Current pace</span><span className="proj-val">+{fmtNum(Math.round(dailyRate))}/day</span></div>
+                          {requiredPerDay && <div className="proj-row"><span className="proj-lbl">Required pace</span><span className="proj-val" style={{color:onTrack?'var(--green)':'var(--red)'}}>+{fmtNum(requiredPerDay)}/day</span></div>}
+                          <div className="proj-row"><span className="proj-lbl">Projected completion</span><span className="proj-val" style={{color:onTrack?'var(--green)':'var(--red)'}}>{etaStr}</span></div>
+                          {hasDate && <div className="proj-row"><span className="proj-lbl">Status</span><span className="proj-val" style={{color:onTrack?'var(--green)':'var(--red)'}}>{onTrack?'✓ On track':'⚠ Behind pace'}</span></div>}
+                        </>
+                      );
+                    })()}
+                  </div>
+                );
+              })()}
 
               <button className="btn-ghost sheet-save-target-btn" onClick={handleSaveTarget}>
                 Save target
