@@ -58,7 +58,7 @@ export const SURVIVAL_ITEMS = [
   {
     id: 'rain_jacket',
     name: 'Rain jacket',
-    description: 'Ugly. Practical. She's glad she has it.',
+    description: "Ugly. Practical. She's glad she has it.",
     cost: 35,
     category: 'clothing',
     journalKey: null,
@@ -67,7 +67,7 @@ export const SURVIVAL_ITEMS = [
   {
     id: 'woven_basket',
     name: 'Woven basket',
-    description: 'Made locally. Carries more than you'd think.',
+    description: "Made locally. Carries more than you'd think.",
     cost: 40,
     category: 'tools',
     journalKey: null,
