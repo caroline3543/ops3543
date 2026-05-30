@@ -1,5 +1,5 @@
 // src/components/Backpack.jsx
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ResourceIcon } from './ResourceIcons';
 import {
@@ -79,26 +79,41 @@ function dayLabel(ts) {
 
 // ── Resource bottom sheet
 function ResourceSheet({ resource, data, logs, onClose, onSave }) {
-  const recentLogs = (logs || []).filter(l => l.resourceId === resource.id)
+  const recentLogs = (logs || [])
+    .filter(l => l.resourceId === resource.id)
     .sort((a, b) => b.date - a.date);
 
-  // Local state — never writes to global until Save/Log
+  // All local state — never touches global until Log/Save
   const [amountInput, setAmountInput] = useState('');
   const [logType, setLogType] = useState('gain');
   const [noteInput, setNoteInput] = useState('');
   const [targetInput, setTargetInput] = useState(data?.target ? String(data.target) : '');
   const [targetDateInput, setTargetDateInput] = useState(data?.targetDate || '');
-  const [activeTab, setActiveTab] = useState('log'); // 'log' | 'graph' | 'history'
+  const [activeTab, setActiveTab] = useState('log');
 
-  const current = data?.current || 0;
-  const target = data?.target || 0;
-  const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : null;
+  // Lock background scroll
+  useEffect(() => {
+    document.body.classList.add('sheet-open');
+    return () => document.body.classList.remove('sheet-open');
+  }, []);
+
+  const current  = data?.current  || 0;
+  const target   = data?.target   || 0;
+  const pct      = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : null;
   const dailyRate = calcDailyRate(recentLogs);
-  const proj = target > 0 && dailyRate ? calcProjection(current, target, dailyRate) : null;
+  const proj      = target > 0 && dailyRate ? calcProjection(current, target, dailyRate) : null;
 
-  const lastLog = recentLogs[0];
-  const prevLog = recentLogs[1];
+  const lastLog  = recentLogs[0];
+  const prevLog  = recentLogs[1];
   const changeSinceLast = lastLog && prevLog ? lastLog.amount - prevLog.amount : null;
+
+  // 7-day average
+  const sevenDayLogs = recentLogs.filter(l => l.date > Date.now() - 7*86400000);
+  const sevenDayAvg = sevenDayLogs.length >= 2
+    ? Math.round((sevenDayLogs[0].amount - sevenDayLogs[sevenDayLogs.length-1].amount) / 7)
+    : null;
+
+  const isValidAmount = amountInput.trim().length > 0 && !isNaN(parseInt(amountInput, 10));
 
   const handleLog = () => {
     const amount = parseInt(amountInput.replace(/,/g, ''), 10);
@@ -112,7 +127,11 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
       logType,
     };
     const newTarget = targetInput ? parseInt(targetInput.replace(/,/g,''), 10) : data?.target || 0;
-    onSave(resource.id, { current: amount, target: newTarget, targetDate: targetDateInput }, entry);
+    onSave(resource.id, {
+      current: amount,
+      target: newTarget,
+      targetDate: targetDateInput,
+    }, entry);
     setAmountInput('');
     setNoteInput('');
   };
@@ -126,21 +145,21 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
     }, null);
   };
 
-  // Build chart data from logs
+  // Chart data
   const chartLogs = recentLogs.slice(0, 30).reverse();
   const chartData = chartLogs.map(l => ({
     date: dayLabel(l.date),
     amount: l.amount,
-    type: l.logType,
+    isEventSpend: l.logType === 'eventSpend',
   }));
 
-  // Projection line
-  const projData = [];
+  const combinedData = [...chartData];
   if (dailyRate && target > 0 && chartData.length > 0) {
-    const lastAmount = chartData[chartData.length - 1]?.amount || current;
-    for (let i = 0; i <= Math.min(30, proj?.daysLeft || 0); i++) {
+    const lastAmount = chartData[chartData.length-1]?.amount || current;
+    const daysToProject = Math.min(proj?.daysLeft || 30, 60);
+    for (let i = 1; i <= daysToProject; i++) {
       const d = new Date(Date.now() + i * 86400000);
-      projData.push({
+      combinedData.push({
         date: dayLabel(d.getTime()),
         projected: Math.min(target, Math.round(lastAmount + dailyRate * i)),
         target,
@@ -148,247 +167,272 @@ function ResourceSheet({ resource, data, logs, onClose, onSave }) {
     }
   }
 
-  const combinedData = [
-    ...chartData.map(d => ({ ...d, projected: undefined })),
-    ...projData.filter(p => !chartData.find(d => d.date === p.date)),
-  ];
-
   return (
     <div className="sheet-overlay" onClick={onClose}>
       <div className="sheet-panel" onClick={e => e.stopPropagation()}>
-        {/* Handle */}
-        <div className="sheet-handle"/>
 
-        {/* Header */}
-        <div className="sheet-header">
-          <div className="sheet-header-left">
-            <ResourceIcon resourceId={resource.id} size={38}/>
-            <div>
-              <div className="sheet-resource-name">{resource.name}</div>
-              <div className="sheet-resource-meta">
-                <span className="sheet-current">{fmtNum(current)}</span>
-                {target > 0 && <><span className="sheet-sep"> / </span><span className="sheet-target">{fmtNum(target)}</span></>}
-                {pct !== null && <span className="sheet-pct"> · {pct}%</span>}
+        {/* ── STICKY TOP — never scrolls ── */}
+        <div className="sheet-sticky-top">
+          <div className="sheet-handle"/>
+
+          {/* Header */}
+          <div className="sheet-header">
+            <div className="sheet-header-left">
+              <ResourceIcon resourceId={resource.id} size={34}/>
+              <div style={{ minWidth: 0 }}>
+                <div className="sheet-resource-name">{resource.name}</div>
+                <div className="sheet-resource-meta">
+                  <span className="sheet-current">{fmtNum(current)}</span>
+                  {target > 0 && <><span className="sheet-sep"> / </span><span className="sheet-target">{fmtNum(target)}</span></>}
+                  {pct !== null && <span className="sheet-pct"> · {pct}%</span>}
+                </div>
               </div>
             </div>
+            <button className="sheet-close" onClick={onClose}>✕</button>
           </div>
-          <button className="sheet-close" onClick={onClose}>✕</button>
-        </div>
 
-        {/* Progress bar */}
-        {pct !== null && (
-          <div className="sheet-progress-track">
-            <div className="sheet-progress-fill" style={{ width: `${pct}%` }}/>
-          </div>
-        )}
-
-        {/* Stats row */}
-        <div className="sheet-stats-row">
-          {dailyRate !== null && (
-            <div className="sheet-stat">
-              <div className="sheet-stat-val">+{Math.round(dailyRate)}/day</div>
-              <div className="sheet-stat-lbl">Daily gain</div>
+          {/* Progress bar */}
+          {pct !== null && (
+            <div className="sheet-progress-track">
+              <div className="sheet-progress-fill" style={{ width: `${pct}%` }}/>
             </div>
           )}
-          {proj && (
-            <div className="sheet-stat">
-              <div className="sheet-stat-val">{proj.eta}</div>
-              <div className="sheet-stat-lbl">Est. completion</div>
-            </div>
-          )}
-          {changeSinceLast !== null && (
-            <div className="sheet-stat">
-              <div className="sheet-stat-val" style={{ color: changeSinceLast >= 0 ? 'var(--sage)' : 'var(--rose)' }}>
-                {changeSinceLast >= 0 ? '+' : ''}{fmtNum(changeSinceLast)}
+
+          {/* Summary grid */}
+          <div className="sheet-summary-grid">
+            {changeSinceLast !== null && (
+              <div className="sheet-summary-cell">
+                <div className="sheet-summary-val" style={{ color: changeSinceLast >= 0 ? 'var(--sage)' : 'var(--rose)' }}>
+                  {changeSinceLast >= 0 ? '+' : ''}{fmtNum(changeSinceLast)}
+                </div>
+                <div className="sheet-summary-lbl">Last change</div>
               </div>
-              <div className="sheet-stat-lbl">Last change</div>
-            </div>
-          )}
-          {proj && proj.daysLeft > 0 && (
-            <div className="sheet-stat">
-              <div className="sheet-stat-val">{proj.daysLeft}d</div>
-              <div className="sheet-stat-lbl">Days left</div>
-            </div>
-          )}
+            )}
+            {sevenDayAvg !== null && (
+              <div className="sheet-summary-cell">
+                <div className="sheet-summary-val" style={{ color: sevenDayAvg >= 0 ? 'var(--sage)' : 'var(--rose)' }}>
+                  {sevenDayAvg >= 0 ? '+' : ''}{fmtNum(sevenDayAvg)}/d
+                </div>
+                <div className="sheet-summary-lbl">7d avg</div>
+              </div>
+            )}
+            {proj && (
+              <div className="sheet-summary-cell">
+                <div className="sheet-summary-val">{proj.eta}</div>
+                <div className="sheet-summary-lbl">Est. done</div>
+              </div>
+            )}
+            {proj && proj.daysLeft > 0 && (
+              <div className="sheet-summary-cell">
+                <div className="sheet-summary-val">{proj.daysLeft}d</div>
+                <div className="sheet-summary-lbl">Days left</div>
+              </div>
+            )}
+            {dailyRate !== null && !proj && (
+              <div className="sheet-summary-cell">
+                <div className="sheet-summary-val">+{Math.round(dailyRate)}/d</div>
+                <div className="sheet-summary-lbl">Daily gain</div>
+              </div>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="sheet-tabs" style={{ margin: '0 16px 10px' }}>
+            {['log','graph','history'].map(t => (
+              <button key={t} className={`sheet-tab ${activeTab===t?'active':''}`}
+                onClick={() => setActiveTab(t)}>
+                {t.charAt(0).toUpperCase()+t.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="sheet-tabs">
-          {['log', 'graph', 'history'].map(t => (
-            <button key={t} className={`sheet-tab ${activeTab === t ? 'active' : ''}`}
-              onClick={() => setActiveTab(t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
+        {/* ── SCROLLABLE BODY ── */}
+        <div className="sheet-scrollable">
 
-        {/* LOG TAB */}
-        {activeTab === 'log' && (
-          <div className="sheet-tab-content">
-            {/* Log type */}
-            <div className="log-type-row">
-              {LOG_TYPES.map(lt => (
-                <button key={lt.id}
-                  className={`log-type-btn ${logType === lt.id ? 'active' : ''}`}
-                  style={{ '--lt-color': lt.color }}
-                  onClick={() => setLogType(lt.id)}>
-                  {lt.label}
-                </button>
-              ))}
-            </div>
+          {/* LOG TAB */}
+          {activeTab === 'log' && (
+            <div className="sheet-tab-content">
 
-            {/* Amount input — local state, no global writes until Log tapped */}
-            <div className="sheet-input-group">
-              <label className="input-label">Current amount</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="sheet-input"
-                value={amountInput}
-                onChange={e => setAmountInput(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder={fmtNum(current)}
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
-              />
-            </div>
+              {/* Log type — segmented control */}
+              <div className="sheet-log-type-section">
+                <div className="sheet-log-type-label">Log type</div>
+                <div className="log-type-segment">
+                  {LOG_TYPES.map(lt => (
+                    <button key={lt.id}
+                      className={`log-seg-btn ${logType===lt.id?'active':''}`}
+                      style={{ '--lt-color': lt.color }}
+                      onClick={() => setLogType(lt.id)}>
+                      {lt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            <div className="sheet-input-group">
-              <label className="input-label">Note (optional)</label>
-              <input
-                type="text"
-                className="sheet-input"
-                value={noteInput}
-                onChange={e => setNoteInput(e.target.value)}
-                placeholder="e.g. After Bear Trap"
-                autoComplete="off"
-              />
-            </div>
-
-            <button
-              className="btn-primary sheet-log-btn"
-              onClick={handleLog}
-              disabled={!amountInput}
-              style={{ opacity: amountInput ? 1 : 0.4 }}
-            >
-              Log amount
-            </button>
-
-            <div className="sheet-divider"/>
-
-            {/* Target */}
-            <div className="sheet-input-row">
-              <div className="sheet-input-group" style={{ flex: 1 }}>
-                <label className="input-label">Target</label>
+              {/* Amount — type=text, inputMode=numeric, local state only */}
+              <div className="sheet-input-group">
+                <label className="input-label">Current amount</label>
                 <input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   className="sheet-input"
-                  value={targetInput}
-                  onChange={e => setTargetInput(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="0"
+                  value={amountInput}
+                  onChange={e => setAmountInput(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder={fmtNum(current)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+              </div>
+
+              <div className="sheet-input-group">
+                <label className="input-label">Note (optional)</label>
+                <input
+                  type="text"
+                  className="sheet-input"
+                  value={noteInput}
+                  onChange={e => setNoteInput(e.target.value)}
+                  placeholder={logType === 'eventSpend' ? 'e.g. SVS, Lucky Wheel, Armament' : 'e.g. After Bear Trap'}
                   autoComplete="off"
                 />
               </div>
-              <div className="sheet-input-group" style={{ flex: 1 }}>
-                <label className="input-label">By date</label>
-                <input
-                  type="date"
-                  className="sheet-input"
-                  value={targetDateInput}
-                  onChange={e => setTargetDateInput(e.target.value)}
-                />
-              </div>
-            </div>
-            <button className="btn-ghost sheet-save-target-btn" onClick={handleSaveTarget}>
-              Save target
-            </button>
-          </div>
-        )}
 
-        {/* GRAPH TAB */}
-        {activeTab === 'graph' && (
-          <div className="sheet-tab-content">
-            {chartData.length < 2 ? (
-              <div className="sheet-empty">
-                Log at least 2 entries to see a chart.
-              </div>
-            ) : (
-              <div className="sheet-chart-wrap">
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={combinedData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)"/>
-                    <XAxis dataKey="date" tick={{ fill: 'var(--text3)', fontSize: 10 }} tickLine={false}/>
-                    <YAxis tick={{ fill: 'var(--text3)', fontSize: 10 }} tickLine={false} axisLine={false}/>
-                    <Tooltip
-                      contentStyle={{
-                        background: 'var(--bg2)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '10px',
-                        fontSize: '12px',
-                        color: 'var(--text)',
-                      }}
-                    />
-                    {target > 0 && (
-                      <ReferenceLine y={target} stroke="var(--warm)" strokeDasharray="4 4"
-                        label={{ value: 'Target', fill: 'var(--warm)', fontSize: 10 }}/>
-                    )}
-                    <Area type="monotone" dataKey="amount"
-                      stroke="var(--accent)" fill="url(#areaGrad)"
-                      strokeWidth={2} dot={{ fill: 'var(--accent)', r: 3 }}
-                      connectNulls={false}/>
-                    <Line type="monotone" dataKey="projected"
-                      stroke="var(--text3)" strokeDasharray="4 4"
-                      strokeWidth={1.5} dot={false} connectNulls/>
-                  </AreaChart>
-                </ResponsiveContainer>
-                <div className="chart-legend">
-                  <span className="legend-item"><span className="legend-dot" style={{background:'var(--accent)'}}/> Actual</span>
-                  <span className="legend-item"><span className="legend-dash"/> Projected</span>
-                  {target > 0 && <span className="legend-item"><span className="legend-dash" style={{background:'var(--warm)'}}/> Target</span>}
+              <button
+                className="btn-primary sheet-log-btn"
+                onClick={handleLog}
+                disabled={!isValidAmount}
+                style={{ opacity: isValidAmount ? 1 : 0.35 }}
+              >
+                Log amount
+              </button>
+
+              <div className="sheet-divider"/>
+              <div className="sheet-input-section-label">Target</div>
+
+              <div className="sheet-input-row">
+                <div className="sheet-input-group" style={{ flex: 1 }}>
+                  <label className="input-label">Target amount</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="sheet-input"
+                    value={targetInput}
+                    onChange={e => setTargetInput(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="0"
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="sheet-input-group" style={{ flex: 1 }}>
+                  <label className="input-label">By date</label>
+                  <input
+                    type="date"
+                    className="sheet-input"
+                    value={targetDateInput}
+                    onChange={e => setTargetDateInput(e.target.value)}
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* HISTORY TAB */}
-        {activeTab === 'history' && (
-          <div className="sheet-tab-content">
-            {recentLogs.length === 0 ? (
-              <div className="sheet-empty">No logs yet. Tap Log to start tracking.</div>
-            ) : (
-              <div className="history-list">
-                {recentLogs.map(log => {
-                  const lt = LOG_TYPES.find(t => t.id === log.logType);
-                  return (
-                    <div key={log.id} className="history-entry">
-                      <div className="history-entry-left">
-                        <span className="history-type-dot" style={{ background: lt?.color }}/>
-                        <div>
-                          <div className="history-amount">{fmtNum(log.amount)}</div>
-                          {log.note && <div className="history-note">{log.note}</div>}
+              <button className="btn-ghost sheet-save-target-btn" onClick={handleSaveTarget}>
+                Save target
+              </button>
+            </div>
+          )}
+
+          {/* GRAPH TAB */}
+          {activeTab === 'graph' && (
+            <div className="sheet-tab-content">
+              {chartData.length < 2 ? (
+                <div className="sheet-empty">
+                  Log at least 2 entries to see a chart.
+                </div>
+              ) : (
+                <div className="sheet-chart-wrap">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={combinedData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%"  stopColor="var(--accent)" stopOpacity={0.35}/>
+                          <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)"/>
+                      <XAxis dataKey="date" tick={{ fill: 'var(--text3)', fontSize: 9 }} tickLine={false} interval="preserveStartEnd"/>
+                      <YAxis tick={{ fill: 'var(--text3)', fontSize: 9 }} tickLine={false} axisLine={false} tickFormatter={v => fmtNum(v)}/>
+                      <Tooltip
+                        contentStyle={{
+                          background: '#1a1612', border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '10px', fontSize: '12px', color: 'var(--text)',
+                        }}
+                        formatter={(v, n) => [fmtNum(v), n === 'amount' ? 'Actual' : n === 'projected' ? 'Projected' : 'Target']}
+                      />
+                      {target > 0 && (
+                        <ReferenceLine y={target} stroke="var(--warm)" strokeDasharray="4 4"
+                          label={{ value: 'Target', fill: 'var(--warm)', fontSize: 9, position: 'insideTopRight' }}/>
+                      )}
+                      {/* Event spend vertical markers */}
+                      {chartData.filter(d => d.isEventSpend).map((d, i) => (
+                        <ReferenceLine key={i} x={d.date} stroke="var(--rose)" strokeDasharray="2 3" strokeOpacity={0.6}/>
+                      ))}
+                      <Area type="monotone" dataKey="amount"
+                        stroke="var(--accent)" fill="url(#areaGrad)" strokeWidth={2}
+                        dot={{ fill: 'var(--accent)', r: 2.5 }} connectNulls={false}/>
+                      <Line type="monotone" dataKey="projected"
+                        stroke="var(--text3)" strokeDasharray="4 4" strokeWidth={1.5}
+                        dot={false} connectNulls/>
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  <div className="chart-legend">
+                    <span className="legend-item"><span className="legend-dot" style={{background:'var(--accent)'}}/>Actual</span>
+                    <span className="legend-item"><span className="legend-dash"/>Projected</span>
+                    {target > 0 && <span className="legend-item"><span className="legend-dash" style={{background:'var(--warm)'}}/>Target</span>}
+                    <span className="legend-item"><span className="legend-dash" style={{background:'var(--rose)'}}/>Event spend</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* HISTORY TAB */}
+          {activeTab === 'history' && (
+            <div className="sheet-tab-content">
+              {recentLogs.length === 0 ? (
+                <div className="sheet-empty">No logs yet.<br/>Tap Log to start tracking.</div>
+              ) : (
+                <div className="history-list">
+                  {recentLogs.map((log, idx) => {
+                    const lt = LOG_TYPES.find(t => t.id === log.logType);
+                    const prev = recentLogs[idx + 1];
+                    const change = prev ? log.amount - prev.amount : null;
+                    return (
+                      <div key={log.id} className="history-entry">
+                        <div className="history-entry-left">
+                          <span className="history-type-dot" style={{ background: lt?.color }}/>
+                          <div>
+                            <div className="history-amount">{fmtNum(log.amount)}</div>
+                            {change !== null && (
+                              <div className="history-change"
+                                style={{ color: change >= 0 ? 'var(--sage)' : 'var(--rose)' }}>
+                                {change >= 0 ? '+' : ''}{fmtNum(change)}
+                              </div>
+                            )}
+                            {log.note && <div className="history-note">{log.note}</div>}
+                          </div>
+                        </div>
+                        <div className="history-entry-right">
+                          <div className="history-type">{lt?.label}</div>
+                          <div className="history-date">{dayLabel(log.date)}</div>
                         </div>
                       </div>
-                      <div className="history-entry-right">
-                        <div className="history-type">{lt?.label}</div>
-                        <div className="history-date">{dayLabel(log.date)}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
