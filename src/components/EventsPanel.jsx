@@ -4,7 +4,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { EVENT_TEMPLATES } from '../data/gameData';
 import EventCalendar from './EventCalendar';
 
-const RECURRENCE_OPTIONS = ['Once','Daily','Weekly','Bi-weekly','Monthly'];
+const RECURRENCE_OPTIONS = ['Once','Daily','Every 2 days','Weekly — Monday','Weekly — Tuesday','Weekly — Wednesday','Weekly — Thursday','Weekly — Friday','Weekly — Saturday','Weekly — Sunday','Bi-weekly','Monthly'];
 const CATEGORIES = ['Bear Trap','Crazy Joe','Foundry','Alliance Championship','Sunfire Castle','Hall of Chiefs','King of Icefield','SVS','Custom'];
 const PRIORITY_COLORS = { high: '#e8705a', medium: '#c09030', prep: '#8a5aaa', low: '#7a9e8a' };
 
