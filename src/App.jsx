@@ -15,6 +15,7 @@ import Backpack from './components/Backpack';
 import Library from './components/Library';
 import LocationAccent from './components/LocationAccent';
 import { CherryBlossoms } from './components/CampAnimations';
+import './tokens.css';
 import './App.css';
 
 const TABS = [
