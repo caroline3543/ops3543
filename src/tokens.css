@@ -6,11 +6,15 @@
 ═══════════════════════════════════════════ */
 
 :root {
-  /* ── Brand accent ── */
-  --accent:        #b5704a;
-  --accent-bright: #d4865a;
-  --accent-dim:    rgba(181,112,74,0.15);
-  --accent-glow:   rgba(181,112,74,0.08);
+  /* ── Brand accent — SAGE is canonical default ── */
+  --accent:        #4a8a5a;   /* sage green */
+  --accent-bright: #5aa06a;
+  --accent-dim:    rgba(74,138,90,0.15);
+  --accent-glow:   rgba(74,138,90,0.08);
+
+  /* ── Secondary accent — terracotta, used sparingly ── */
+  --accent-2:      #b5704a;
+  --accent-2-dim:  rgba(181,112,74,0.15);
 
   /* ── Semantic ── */
   --green:         #4a9e6a;
@@ -95,11 +99,13 @@
 ═══════════════════════ */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* ── Brand accent (slightly brighter in dark) ── */
-    --accent:        #c8845a;
-    --accent-bright: #e09a6a;
-    --accent-dim:    rgba(200,132,90,0.18);
-    --accent-glow:   rgba(200,132,90,0.08);
+    /* ── Brand accent — sage, brighter in dark ── */
+    --accent:        #5abf72;
+    --accent-bright: #70d088;
+    --accent-dim:    rgba(90,191,114,0.18);
+    --accent-glow:   rgba(90,191,114,0.08);
+    --accent-2:      #c8845a;
+    --accent-2-dim:  rgba(200,132,90,0.18);
 
     /* ── Semantic ── */
     --green:         #5ab87a;

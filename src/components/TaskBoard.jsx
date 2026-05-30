@@ -3,10 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const QUADRANTS = [
-  { id: 'do-now',   label: 'Ready for this',        sub: 'Urgent & important',        color: '#e8705a' },
-  { id: 'do-soon',  label: 'When I have space',      sub: 'Important, not urgent',     color: '#c09030' },
-  { id: 'do-later', label: 'When the time is right', sub: 'Urgent, not important',     color: '#5a9a6a' },
-  { id: 'maybe',    label: 'Holding space for this', sub: 'No pressure, just a thought',color: '#9a8a7a' },
+  { id: 'do-now',   label: 'Ready for this',    sub: 'Urgent & important',         color: 'var(--accent)' },
+  { id: 'do-soon',  label: 'Worth planning',    sub: 'Important, not urgent',      color: 'var(--amber)'  },
+  { id: 'do-later', label: 'Could ask for help',sub: 'Urgent, less important',     color: 'var(--blue)'   },
+  { id: 'maybe',    label: 'Maybe let go',      sub: 'Neither urgent nor important',color: 'var(--text-3)' },
 ];
 
 // ── Swipeable task item
@@ -153,74 +153,111 @@ function SwipeableTask({ t, onToggle, onStar, onDelete, onEdit, onBreakdown, onM
   );
 }
 
-// ── Swipeable Eisenhower matrix — one quadrant at a time
+// ── True 2×2 Eisenhower Matrix
 function MatrixView({ tasks, onToggle, onStar, onDelete, onMove }) {
-  const [qIndex, setQIndex] = useState(0);
+  const [openQ, setOpenQ] = useState(null); // quadrant id for full sheet
   const [dragId, setDragId] = useState(null);
-  const startX = useRef(0);
-  const [swipeDir, setSwipeDir] = useState(0);
 
-  const q = QUADRANTS[qIndex];
-  const qTasks = tasks.filter(t => t.quadrant === q.id);
-
-  const handleTouchStart = (e) => { startX.current = e.touches[0].clientX; };
-  const handleTouchEnd = (e) => {
-    const dx = e.changedTouches[0].clientX - startX.current;
-    if (dx < -50 && qIndex < 3) setQIndex(i => i + 1);
-    if (dx > 50  && qIndex > 0) setQIndex(i => i - 1);
-  };
+  const openSheet = QUADRANTS.find(q => q.id === openQ);
+  const sheetTasks = openSheet ? tasks.filter(t => t.quadrant === openQ) : [];
 
   return (
-    <div className="matrix-swipe">
-      {/* Quadrant nav dots */}
-      <div className="matrix-nav">
-        {QUADRANTS.map((q, i) => (
-          <button key={q.id} className={`matrix-nav-dot ${i === qIndex ? 'active' : ''}`}
-            style={{ '--dot-color': q.color }}
-            onClick={() => setQIndex(i)} />
-        ))}
-      </div>
-
-      {/* Quadrant card */}
-      <div
-        className="matrix-quadrant-full"
-        style={{ borderTopColor: q.color }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onDragOver={e => e.preventDefault()}
-        onDrop={() => { if (dragId) onMove(dragId, q.id); setDragId(null); }}
-      >
-        <div className="q-header">
-          <div className="q-label" style={{ color: q.color }}>{q.label}</div>
-          <div className="q-sub">{q.sub}</div>
-        </div>
-
-        <div className="q-tasks-full">
-          {qTasks.length === 0 && (
-            <div className="q-empty">Nothing here yet —<br/>and that's okay</div>
-          )}
-          {qTasks.map(t => (
-            <div key={t.id}
-              className={`q-task-item-full ${t.done ? 'task-done' : ''}`}
-              draggable onDragStart={() => setDragId(t.id)}>
-              <button className="task-check small" onClick={() => onToggle(t.id)}>
-                {t.done ? '✓' : '○'}
-              </button>
-              <span className="task-text">{t.text}</span>
-              <div className="q-task-actions">
-                <button className={`task-btn ${t.starred?'starred':''}`} onClick={()=>onStar(t.id)}>★</button>
-                <button className="task-btn danger" onClick={()=>onDelete(t.id)}>✕</button>
+    <>
+      {/* 2×2 grid */}
+      <div className="matrix-grid">
+        {QUADRANTS.map(q => {
+          const qTasks = tasks.filter(t => t.quadrant === q.id);
+          const preview = qTasks.slice(0, 2);
+          const more = qTasks.length - 2;
+          return (
+            <div
+              key={q.id}
+              className="matrix-cell"
+              style={{ borderTopColor: q.color }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={() => { if (dragId) { onMove(dragId, q.id); setDragId(null); } }}
+              onClick={() => setOpenQ(q.id)}
+            >
+              <div className="matrix-cell-header">
+                <div className="matrix-cell-label" style={{ color: q.color }}>{q.label}</div>
+                <div className="matrix-cell-count">{qTasks.length}</div>
+              </div>
+              <div className="matrix-cell-tasks">
+                {qTasks.length === 0 && (
+                  <div className="matrix-cell-empty">Empty ·<br/>tap to add</div>
+                )}
+                {preview.map(t => (
+                  <div key={t.id}
+                    className={`matrix-preview-task ${t.done ? 'task-done' : ''}`}
+                    draggable
+                    onDragStart={e => { e.stopPropagation(); setDragId(t.id); }}
+                    onClick={e => { e.stopPropagation(); onToggle(t.id); }}
+                  >
+                    <span className="matrix-preview-check">{t.done ? '✓' : '○'}</span>
+                    <span className="matrix-preview-text">{t.text}</span>
+                  </div>
+                ))}
+                {more > 0 && (
+                  <div className="matrix-more">+{more} more</div>
+                )}
               </div>
             </div>
-          ))}
-        </div>
-
-        <div className="matrix-swipe-hint">
-          {qIndex > 0 && <span>← {QUADRANTS[qIndex-1].label}</span>}
-          {qIndex < 3 && <span style={{marginLeft:'auto'}}>{QUADRANTS[qIndex+1].label} →</span>}
-        </div>
+          );
+        })}
       </div>
-    </div>
+
+      {/* Full-screen quadrant sheet */}
+      {openSheet && (
+        <div className="sheet-overlay" onClick={() => setOpenQ(null)}>
+          <div className="sheet-panel" onClick={e => e.stopPropagation()}
+            style={{ display:'flex', flexDirection:'column', height:'88svh', maxHeight:'88svh', borderRadius:'20px 20px 0 0', background:'var(--bg-modal)', overflow:'hidden' }}>
+            <div style={{ flexShrink:0, borderBottom:'1px solid var(--border)', padding:'12px 16px 10px' }}>
+              <div className="sheet-handle" style={{ margin:'0 auto 10px' }}/>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div>
+                  <div style={{ fontSize:'16px', fontWeight:800, color: openSheet.color }}>{openSheet.label}</div>
+                  <div style={{ fontSize:'12px', color:'var(--text-3)', marginTop:'2px' }}>{openSheet.sub}</div>
+                </div>
+                <button className="sheet-close" onClick={() => setOpenQ(null)}>✕</button>
+              </div>
+            </div>
+            <div style={{ flex:'1 1 0%', minHeight:0, overflowY:'scroll', WebkitOverflowScrolling:'touch', padding:'12px 14px' }}>
+              {sheetTasks.length === 0 && (
+                <div style={{ textAlign:'center', padding:'40px 0', color:'var(--text-3)', fontSize:'14px', fontStyle:'italic' }}>
+                  Nothing here yet — and that's okay.
+                </div>
+              )}
+              {sheetTasks.map(t => (
+                <div key={t.id}
+                  className={`task-item ${t.done?'task-done':''} ${t.starred?'task-starred':''}`}
+                  draggable onDragStart={() => setDragId(t.id)}
+                  style={{ marginBottom:'6px' }}>
+                  <button className="task-check" onClick={() => onToggle(t.id)}>{t.done?'✓':'○'}</button>
+                  <div className="task-body">
+                    <div className="task-text">{t.text}</div>
+                  </div>
+                  <div className="task-actions">
+                    <button className={`task-btn ${t.starred?'starred':''}`} onClick={() => onStar(t.id)}>★</button>
+                    <button className="task-btn danger" onClick={() => onDelete(t.id)}>✕</button>
+                  </div>
+                </div>
+              ))}
+              {/* Move to other quadrants */}
+              <div style={{ marginTop:'16px', borderTop:'1px solid var(--border)', paddingTop:'12px' }}>
+                <div style={{ fontSize:'11px', color:'var(--text-3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:'8px' }}>Move tasks to</div>
+                <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+                  {QUADRANTS.filter(q => q.id !== openQ).map(q => (
+                    <div key={q.id} style={{ fontSize:'12px', fontWeight:600, color:q.color, padding:'6px 10px', borderRadius:'99px', border:`1px solid ${q.color}`, opacity:0.8 }}>
+                      {q.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -246,11 +283,21 @@ export default function TaskBoard({ externalTasks, onTaskComplete, onAllDone, ha
 
   const addTask = () => {
     if (!newText.trim()) return;
-    setTasks(prev => [{
-      id: Date.now(), text: newText.trim(),
-      quadrant: 'do-now', type: 'personal',
-      done: false, starred: false, subtasks: [],
-    }, ...prev]);
+    // Support bulk add — newline or comma separated
+    const lines = newText
+      .split(/[\n,]/)
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+    const newTasks = lines.map(text => ({
+      id: Date.now() + Math.random(),
+      text,
+      quadrant: 'do-now',
+      type: 'personal',
+      done: false,
+      starred: false,
+      subtasks: [],
+    }));
+    setTasks(prev => [...newTasks, ...prev]);
     setNewText('');
     if (haptic) haptic('light');
   };
@@ -329,9 +376,17 @@ export default function TaskBoard({ externalTasks, onTaskComplete, onAllDone, ha
             onKeyDown={e=>e.key==='Enter'&&saveEdit(editingId)}
             placeholder="Edit task..." />
         ) : (
-          <input className="task-input" placeholder="What's one thing I'm choosing today?"
-            value={newText} onChange={e=>setNewText(e.target.value)}
-            onKeyDown={e=>e.key==='Enter'&&addTask()} />
+          <textarea
+            className="task-input task-input-multi"
+            placeholder={"What's one thing I'm choosing today?\n\nAdd multiple — one per line or comma separated"}
+            value={newText}
+            onChange={e=>setNewText(e.target.value)}
+            onKeyDown={e=>{
+              // Cmd+Enter or Ctrl+Enter to add
+              if (e.key==='Enter' && (e.metaKey||e.ctrlKey)) { e.preventDefault(); addTask(); }
+            }}
+            rows={newText.includes('\n') ? Math.min(6, newText.split('\n').length + 1) : 1}
+          />
         )}
         <button className="btn-icon" onClick={addTask}>+</button>
       </div>

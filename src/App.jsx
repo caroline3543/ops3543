@@ -6,7 +6,7 @@ import { useSounds } from './hooks/useSounds';
 import { useHaptics } from './hooks/useHaptics';
 import UtcCountdown from './components/UtcCountdown';
 import MinisterTimer from './components/MinisterTimer';
-import ServerAge from './components/ServerAge';
+import ServerProgression, { ServerAgeCompact } from './components/ServerAge';
 import EventsPanel from './components/EventsPanel';
 import TaskBoard from './components/TaskBoard';
 import SettingsPanel from './components/SettingsPanel';
@@ -110,22 +110,21 @@ export default function App() {
         {/* ── TAB 1: I CHOOSE TO ── */}
         {tab === 'ichooseto' && (
           <>
-            {/* 1. Greeting */}
-            <div className="greeting-section">
-              <div className="greeting-day">{dayStr}</div>
-              <div className="greeting-text">
+            {/* 1. Server Progression — prominent, top */}
+            <ServerProgression />
+
+            {/* 2. Greeting — lighter, below progression */}
+            <div className="greeting-section greeting-light">
+              <div className="greeting-text greeting-text-small">
                 {greeting}, <span className="greeting-name">{commanderName}.</span>
               </div>
             </div>
 
-            {/* Server + UTC strip */}
+            {/* UTC strip */}
             <div className="info-strip">
-              <ServerAge compact />
+              <ServerAgeCompact />
               <UtcCountdown compact />
             </div>
-
-            {/* 2. Minister Position */}
-            <MinisterTimer play={play} haptic={haptic} />
 
             {/* 3. Today's Adventures */}
             <div className="section-heading-pad">
@@ -144,6 +143,12 @@ export default function App() {
               onAllDone={handleAllDone}
               haptic={haptic}
             />
+
+            {/* 5. Minister — lower priority */}
+            <div className="section-heading-pad" style={{ marginTop: '4px' }}>
+              <div className="section-label">MINISTER POSITION</div>
+            </div>
+            <MinisterTimer play={play} haptic={haptic} />
           </>
         )}
 

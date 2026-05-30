@@ -1,26 +1,20 @@
 // src/data/milestones.js
-// State 3543 founding date — Day 234 as of 2026-05-30
-const FOUNDING_DATE = new Date('2025-10-08T00:00:00Z');
+// Server start: ~6 Oct 2025. Day 237 = 31 May 2026.
+const FOUNDING_DATE = new Date('2025-10-06T00:00:00Z');
 
 export const STATE_FOUNDING_DATE = FOUNDING_DATE;
 
 export const SERVER_MILESTONES = [
-  { day: 0,   label: 'Initial Heroes',           detail: 'First heroes unlocked' },
-  { day: 150, label: 'Crystal Infrastructure',   detail: 'Crystal buildings available' },
-  { day: 180, label: 'Legendary Chief Gear',      detail: 'Legendary gear unlocked' },
-  { day: 195, label: 'Gen 4 Heroes',              detail: '4th generation heroes' },
-  { day: 200, label: 'Fourth Pets Update',        detail: 'New pets available' },
-  { day: 220, label: 'War Academy Update',        detail: 'War Academy upgrades' },
-  { day: 270, label: 'Gen 5 Heroes',              detail: '5th generation heroes' },
-  { day: 280, label: 'Fifth Pets Update',         detail: 'New pets available' },
-  { day: 315, label: 'Advanced Crystal Update',   detail: 'Crystal tiers 6-8 unlocked' },
-  { day: 360, label: 'Gen 6 Heroes',              detail: '6th generation heroes' },
-  { day: 370, label: 'Mammoth Update',            detail: 'Mammoth content unlocked' },
-  { day: 440, label: 'Gen 7 Heroes',              detail: '7th generation heroes' },
-  { day: 500, label: 'Crystal Mastery',           detail: 'Crystal tiers 9-10 unlocked' },
-  { day: 520, label: 'Gen 8 Heroes',              detail: '8th generation heroes' },
-  { day: 600, label: 'Gen 9 Heroes',              detail: '9th generation heroes' },
-  { day: 700, label: 'Gen 10 Heroes',             detail: '10th generation heroes' },
+  { day: 270, label: 'Gen 5 Heroes',     detail: '5th generation heroes unlock',  date: '2026-07-06', icon: '⚔️' },
+  { day: 280, label: '5th Pets',         detail: 'Fifth pets update',              date: '2026-07-16', icon: '🐾' },
+  { day: 315, label: 'FC6–FC8',          detail: 'Fire Crystal tiers 6–8 unlock', date: '2026-08-20', icon: '🔥' },
+  { day: 360, label: 'Gen 6 Heroes',     detail: '6th generation heroes unlock',  date: '2026-10-04', icon: '⚔️' },
+  { day: 370, label: 'Mammoth',          detail: 'Mammoth content unlocked',      date: '2026-10-14', icon: '🦣' },
+  { day: 440, label: 'Gen 7 Heroes',     detail: '7th generation heroes unlock',  date: '2026-12-23', icon: '⚔️' },
+  { day: 500, label: 'Crystal Mastery',  detail: 'Crystal tiers 9–10 unlock',     date: '2027-02-21', icon: '💎' },
+  { day: 520, label: 'Gen 8 Heroes',     detail: '8th generation heroes unlock',  date: '2027-03-13', icon: '⚔️' },
+  { day: 600, label: 'Gen 9 Heroes',     detail: '9th generation heroes unlock',  date: '2027-06-01', icon: '⚔️' },
+  { day: 700, label: 'Gen 10 Heroes',    detail: '10th generation heroes unlock', date: '2027-09-09', icon: '⚔️' },
 ];
 
 // src/data/eventTemplates.js

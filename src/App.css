@@ -18,13 +18,18 @@
   --text2:       var(--text-2);
   --text3:       var(--text-3);
   --border2:     var(--border-strong);
-  --glow-a:      rgba(180,155,110,0.2);
-  --glow-b:      rgba(150,125,85,0.12);
+  --glow-a:      rgba(74,138,90,0.18);
+  --glow-b:      rgba(50,110,65,0.12);
   --gold:        var(--amber);
   --gold-dim:    var(--amber-dim);
-  --sage-dim:    var(--green-dim);
+  --sage:        var(--accent);       /* sage IS the accent */
+  --sage-dim:    var(--accent-dim);
+  --warm:        var(--accent-2);     /* terracotta = secondary */
+  --warm-dim:    var(--accent-2-dim);
   --purple:      var(--blue);
   --font:        var(--sans);
+  --rose:        var(--red);
+  --rose-dim:    var(--red-dim);
 }
 
 /* ════════════════════════════════════════════
@@ -2378,3 +2383,171 @@ body.sheet-open {
 .proj-val { font-size: 13px; font-weight: 800; color: var(--text-1); font-variant-numeric: tabular-nums; text-align: right; }
 .proj-done   { color: var(--green) !important; }
 .proj-behind { color: var(--red) !important; }
+
+/* ══════════════════════════════════════════
+   SERVER PROGRESSION CARD
+══════════════════════════════════════════ */
+.progression-card {
+  margin: 8px 14px 0;
+  border-left: 3px solid var(--accent);
+}
+
+.prog-header {
+  display: flex; align-items: flex-start;
+  gap: 14px; margin-bottom: 12px;
+}
+
+.prog-day-badge {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--accent-dim); border: 1px solid var(--accent);
+  border-radius: 12px; padding: 8px 12px; flex-shrink: 0; text-align: center;
+}
+.prog-day-num {
+  font-size: 18px; font-weight: 900; color: var(--accent);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.5px;
+}
+.prog-day-label {
+  font-size: 9px; font-weight: 700; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; opacity: 0.8;
+}
+
+.prog-next-block { flex: 1; min-width: 0; }
+.prog-next-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text-3); text-transform: uppercase; margin-bottom: 3px;
+}
+.prog-next-name {
+  font-size: 16px; font-weight: 800; color: var(--text-1);
+  margin-bottom: 3px; line-height: 1.2;
+}
+.prog-next-meta { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+/* Progress track */
+.prog-track-wrap { margin-bottom: 12px; }
+.prog-track {
+  height: 6px; background: var(--progress-track);
+  border-radius: 99px; overflow: hidden; margin-bottom: 4px;
+}
+.prog-fill {
+  height: 100%; background: var(--progress-fill);
+  border-radius: 99px; transition: width 1s ease;
+}
+.prog-track-labels {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; color: var(--text-3);
+}
+.prog-track-pct { font-weight: 800; color: var(--accent); }
+
+/* Upcoming milestones */
+.prog-upcoming { display: flex; flex-direction: column; gap: 6px; }
+.prog-milestone {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 11px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+}
+.prog-milestone-next {
+  background: var(--accent-dim); border-color: var(--accent);
+}
+.prog-m-icon { font-size: 18px; flex-shrink: 0; }
+.prog-m-body { flex: 1; min-width: 0; }
+.prog-m-name { font-size: 13px; font-weight: 700; color: var(--text-1); }
+.prog-m-meta { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.prog-m-days { text-align: center; flex-shrink: 0; min-width: 36px; }
+.prog-m-days-num {
+  font-size: 18px; font-weight: 900; color: var(--accent);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.prog-m-days-label { font-size: 9px; color: var(--text-3); font-weight: 600; margin-top: 1px; }
+
+/* Expand */
+.prog-expand-btn {
+  margin-top: 8px; width: 100%; padding: 8px;
+  border-radius: 10px; font-size: 12px; font-weight: 700;
+  color: var(--text-3); background: transparent;
+  border: 1px dashed var(--border); cursor: pointer;
+  transition: all 0.15s;
+}
+.prog-expand-btn:active { background: var(--bg-inset); color: var(--accent); }
+
+.prog-rest { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.prog-rest-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 9px;
+  background: var(--bg-inset); border: 1px solid var(--border);
+}
+
+/* Lighter greeting */
+.greeting-light { padding: 6px 18px 2px !important; }
+.greeting-text-small { font-size: 17px !important; opacity: 0.7; }
+
+/* Strip inner helper */
+.strip-inner { display: flex; flex-direction: column; gap: 1px; }
+
+/* ══════════════════════════════════════════
+   TRUE 2×2 EISENHOWER MATRIX
+══════════════════════════════════════════ */
+.matrix-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  /* No padding here — cells are compact */
+}
+
+.matrix-cell {
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  border-top: 2.5px solid var(--accent); /* overridden per quadrant */
+  border-radius: var(--r-sm);
+  padding: 10px 10px 8px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 0.15s var(--spring);
+  min-height: 90px;
+}
+.matrix-cell:active { transform: scale(0.97); }
+
+.matrix-cell-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 4px;
+  margin-bottom: 6px;
+}
+.matrix-cell-label {
+  font-size: 11px; font-weight: 800; line-height: 1.2;
+  /* color set inline per quadrant */
+}
+.matrix-cell-count {
+  font-size: 11px; font-weight: 800; color: var(--text-3);
+  background: var(--bg-inset); border-radius: 99px;
+  width: 18px; height: 18px; display: flex;
+  align-items: center; justify-content: center;
+  flex-shrink: 0; font-variant-numeric: tabular-nums;
+}
+
+.matrix-cell-tasks { display: flex; flex-direction: column; gap: 3px; }
+
+.matrix-preview-task {
+  display: flex; align-items: flex-start; gap: 5px;
+  padding: 3px 0; cursor: pointer;
+}
+.matrix-preview-task.task-done { opacity: 0.4; }
+.matrix-preview-check {
+  font-size: 10px; color: var(--text-3); flex-shrink: 0;
+  margin-top: 1px; min-width: 12px;
+}
+.matrix-preview-text {
+  font-size: 11px; color: var(--text-1); line-height: 1.3;
+  word-break: break-word; /* allow natural wrapping */
+}
+.matrix-preview-task.task-done .matrix-preview-text {
+  text-decoration: line-through; color: var(--text-3);
+}
+
+.matrix-cell-empty {
+  font-size: 10px; color: var(--text-4);
+  font-style: italic; line-height: 1.4; padding: 2px 0;
+}
+
+.matrix-more {
+  font-size: 10px; color: var(--text-3); font-weight: 700;
+  padding-top: 2px;
+}
