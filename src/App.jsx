@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useCoins, COIN_REWARDS } from './hooks/useCoins';
+import { useSounds } from './hooks/useSounds';
+import { useHaptics } from './hooks/useHaptics';
 import UtcCountdown from './components/UtcCountdown';
 import MinisterTimer from './components/MinisterTimer';
 import ServerAge from './components/ServerAge';
@@ -11,6 +13,8 @@ import SettingsPanel from './components/SettingsPanel';
 import BaseCamp from './components/BaseCamp';
 import Backpack from './components/Backpack';
 import Library from './components/Library';
+import LocationAccent from './components/LocationAccent';
+import { CherryBlossoms } from './components/CampAnimations';
 import './App.css';
 
 const TABS = [
@@ -18,7 +22,7 @@ const TABS = [
   { id: 'events',    icon: '📅', label: 'Events' },
   { id: 'backpack',  icon: '🎒', label: 'Backpack' },
   { id: 'library',   icon: '📚', label: 'Library' },
-  { id: 'camp',      icon: '🏕️', label: 'My camp' },
+  { id: 'camp',      icon: '🏕️',  label: 'My camp' },
 ];
 
 export default function App() {
@@ -29,6 +33,8 @@ export default function App() {
   const [greeting, setGreeting] = useState('');
   const [dayStr, setDayStr] = useState('');
   const { coins, earn } = useCoins();
+  const { play, playChord, soundEnabled, setSoundEnabled } = useSounds();
+  const { haptic, hapticsEnabled, setHapticsEnabled } = useHaptics();
   const [camp] = useLocalStorage('camp', null);
   const locationId = camp?.locationId || null;
 
@@ -41,21 +47,42 @@ export default function App() {
     setDayStr(days[new Date().getDay()]);
   }, []);
 
+  const handleTabChange = (newTab) => {
+    play('tabSwitch');
+    haptic('light');
+    setTab(newTab);
+  };
+
   const handleTasksAdded = (tasks) => setPendingTasks(prev => [...prev, ...tasks]);
+
   const handleTaskComplete = (task) => {
     const base = task.type === 'event' ? COIN_REWARDS.eventTask : COIN_REWARDS.personalTask;
     const bonus = task.starred ? COIN_REWARDS.starredBonus : 0;
     earn(base + bonus, task.text);
+    play('taskComplete');
+    setTimeout(() => play('coinEarned'), 120);
+    haptic('success');
   };
-  const handleAllDone = () => earn(COIN_REWARDS.allDoneBonus, 'All done for the day!');
+
+  const handleAllDone = () => {
+    earn(COIN_REWARDS.allDoneBonus, 'All done for the day!');
+    playChord();
+    haptic('success');
+  };
+
+  const currentTab = TABS.find(t => t.id === tab);
 
   return (
     <div className="app" data-loc={locationId || undefined}>
       <div className="app-bg" />
+      <LocationAccent locationId={locationId} />
+      {/* Japan cherry blossoms ambient */}
+      {locationId === 'japan' && <CherryBlossoms count={7} />}
+
       <div className="app-inner">
 
-        {/* Header — only shown on I Choose To tab */}
-        {tab === 'ichooseto' && (
+        {/* Header */}
+        {tab === 'ichooseto' ? (
           <header className="app-header">
             <div className="header-left">
               <div className="header-badge">CC</div>
@@ -66,27 +93,23 @@ export default function App() {
             </div>
             <div className="header-right">
               <div className="coin-display">🪙 {coins}</div>
-              <button className="settings-btn" onClick={() => setShowSettings(true)}>⚙</button>
+              <button className="settings-btn" onClick={() => { haptic('light'); setShowSettings(true); }}>⚙</button>
             </div>
           </header>
-        )}
-
-        {/* Minimal header for other tabs */}
-        {tab !== 'ichooseto' && (
+        ) : (
           <header className="app-header app-header-minimal">
-            <div className="header-tab-title">
-              {TABS.find(t => t.id === tab)?.icon} {TABS.find(t => t.id === tab)?.label}
-            </div>
+            <div className="header-tab-title">{currentTab?.icon} {currentTab?.label}</div>
             <div className="header-right">
               <div className="coin-display">🪙 {coins}</div>
-              <button className="settings-btn" onClick={() => setShowSettings(true)}>⚙</button>
+              <button className="settings-btn" onClick={() => { haptic('light'); setShowSettings(true); }}>⚙</button>
             </div>
           </header>
         )}
 
-        {/* ── TAB: I CHOOSE TO ── */}
+        {/* ── TAB 1: I CHOOSE TO ── */}
         {tab === 'ichooseto' && (
           <>
+            {/* 1. Greeting */}
             <div className="greeting-section">
               <div className="greeting-day">{dayStr}</div>
               <div className="greeting-text">
@@ -94,58 +117,48 @@ export default function App() {
               </div>
             </div>
 
-            {/* Server info strip */}
+            {/* Server + UTC strip */}
             <div className="info-strip">
               <ServerAge compact />
               <UtcCountdown compact />
             </div>
 
-            <MinisterTimer />
+            {/* 2. Minister Position */}
+            <MinisterTimer play={play} haptic={haptic} />
 
+            {/* 3. Today's Adventures */}
+            <div className="section-heading-pad">
+              <div className="section-label">TODAY'S ADVENTURES</div>
+            </div>
+            <EventsPanel onTasksAdded={handleTasksAdded} />
+
+            {/* 4. Daily tasks */}
             <div className="choose-to-heading">
               <div className="choose-to-title">I choose to…</div>
               <div className="choose-to-sub">What do I want to accomplish today?</div>
             </div>
-
             <TaskBoard
               externalTasks={pendingTasks}
               onTaskComplete={handleTaskComplete}
               onAllDone={handleAllDone}
+              haptic={haptic}
             />
-
-            {/* Today's events summary */}
-            <div className="events-summary-heading">
-              <div className="section-label">TODAY'S ADVENTURES</div>
-            </div>
-            <EventsPanel onTasksAdded={handleTasksAdded} compact />
           </>
         )}
 
-        {/* ── TAB: EVENTS ── */}
-        {tab === 'events' && (
-          <EventsPanel onTasksAdded={handleTasksAdded} fullPage />
-        )}
-
-        {/* ── TAB: BACKPACK ── */}
+        {tab === 'events'   && <EventsPanel onTasksAdded={handleTasksAdded} fullPage />}
         {tab === 'backpack' && <Backpack />}
-
-        {/* ── TAB: LIBRARY ── */}
-        {tab === 'library' && <Library />}
-
-        {/* ── TAB: MY CAMP ── */}
-        {tab === 'camp' && <BaseCamp />}
+        {tab === 'library'  && <Library />}
+        {tab === 'camp'     && <BaseCamp />}
 
       </div>
 
-      {/* Scrollable bottom nav */}
       <nav className="bottom-nav">
         <div className="nav-scroll">
           {TABS.map(t => (
-            <button
-              key={t.id}
+            <button key={t.id}
               className={`nav-btn ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
+              onClick={() => handleTabChange(t.id)}>
               <span className="nav-icon">{t.icon}</span>
               <span>{t.label}</span>
             </button>
@@ -153,7 +166,15 @@ export default function App() {
         </div>
       </nav>
 
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => setShowSettings(false)}
+          soundEnabled={soundEnabled}
+          setSoundEnabled={setSoundEnabled}
+          hapticsEnabled={hapticsEnabled}
+          setHapticsEnabled={setHapticsEnabled}
+        />
+      )}
     </div>
   );
 }

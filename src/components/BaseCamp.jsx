@@ -6,6 +6,9 @@ import { useCoins } from '../hooks/useCoins';
 import LocationPicker from './LocationPicker';
 import PlantCard from './PlantCard';
 import AnimalCompanion from './AnimalCompanion';
+import { Campfire, AnimatedRing, PulsingDot } from './CampAnimations';
+// NOTE: Replace Campfire with a Lottie animation for richer visuals.
+// Recommended: lottie-react with a campfire.json asset.
 
 const SHOP_TABS = ['Build', 'Grow', 'Care'];
 
@@ -141,6 +144,20 @@ export default function BaseCamp() {
           <div className="camp-philosophy">
             <div className="cp-word">{loc.philosophy}</div>
             <div className="cp-meaning">{loc.philosophyMeaning}</div>
+          </div>
+
+          {/* Animated campfire */}
+          <div className="camp-fire-card">
+            <Campfire size={52} />
+            <div className="camp-fire-info">
+              <div className="camp-fire-name">Your fire is burning</div>
+              <div className="camp-fire-sub">Day {getDaysAtCamp()} at {loc.name}</div>
+            </div>
+            <AnimatedRing
+              progress={Math.min(100, (getDaysAtCamp() / 30) * 100)}
+              size={44}
+              color="var(--warm)"
+            />
           </div>
 
           {/* Grid */}
