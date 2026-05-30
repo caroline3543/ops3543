@@ -1277,3 +1277,121 @@ input, select, textarea { font-family: inherit; color: var(--text); }
 }
 @media (prefers-color-scheme: dark) { .add-resource-btn { border-color: rgba(255,255,255,0.1); } }
 .add-resource-btn:active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+/* ══════════════════════════════════════════
+   CAMP SCENE
+══════════════════════════════════════════ */
+.camp-scene-container { margin: 0 0 10px; }
+.camp-scene-wrap { border-radius: var(--r) var(--r) 0 0; overflow: hidden; }
+.camp-scene-svg { display: block; width: 100%; }
+
+/* Star twinkle */
+@keyframes twinkle {
+  0%,100% { opacity: 0.3; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.3); }
+}
+.star-twinkle { animation: twinkle ease-in-out infinite; animation-duration: 2s; }
+
+/* Petal drift */
+@keyframes petalDrift {
+  0%   { transform: translateY(0) rotate(0deg) translateX(0); }
+  50%  { transform: translateY(60px) rotate(180deg) translateX(15px); }
+  100% { transform: translateY(120px) rotate(360deg) translateX(-10px); }
+}
+.petal-drift { animation: petalDrift 4s ease-in-out infinite; }
+
+/* Fire ground glow pulse */
+@keyframes groundGlow {
+  0%,100% { opacity: 0.08; }
+  50%      { opacity: 0.18; }
+}
+.fire-ground-glow { animation: groundGlow 2s ease-in-out infinite; }
+
+/* Lantern glow */
+@keyframes lanternPulse {
+  0%,100% { opacity: 0.12; }
+  50%      { opacity: 0.22; }
+}
+.lantern-glow { animation: lanternPulse 2.5s ease-in-out infinite; }
+
+/* Camper SVG animations */
+.camper-svg { overflow: visible; }
+
+/* Sleep ZZZ float */
+@keyframes zFloat {
+  0%   { transform: translateY(0); opacity: 0.4; }
+  100% { transform: translateY(-12px); opacity: 0; }
+}
+.sleep-z { animation: zFloat 2s ease-in infinite; }
+
+/* ══════════════════════════════════════════
+   CAMP SCENE UI ELEMENTS
+══════════════════════════════════════════ */
+.camp-progress-strip {
+  display: flex; align-items: center; gap: 12px;
+  margin: 10px 14px;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: 14px; padding: 12px 16px;
+  backdrop-filter: blur(16px); box-shadow: var(--glass-shadow);
+}
+.camp-progress-info { flex: 1; }
+.camp-progress-label { font-size: 14px; font-weight: 700; color: var(--text); }
+.camp-progress-sub   { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+/* Almost there nudge */
+.almost-there-nudge {
+  margin: 0 14px 10px;
+  background: linear-gradient(135deg, var(--warm-dim), var(--glass));
+  border: 1px solid var(--warm);
+  border-radius: 14px; padding: 12px 16px;
+  backdrop-filter: blur(16px);
+}
+.at-text { font-size: 14px; color: var(--text); line-height: 1.5; }
+.at-item  { font-weight: 700; color: var(--warm); }
+.at-coins { font-weight: 700; color: var(--warm); }
+.at-sub   { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* Secret unlock toast */
+.secret-unlock-toast {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 14px 10px;
+  background: linear-gradient(135deg, rgba(253,230,138,0.3), var(--glass));
+  border: 1px solid #fcd34d;
+  border-radius: 14px; padding: 14px 16px;
+  backdrop-filter: blur(16px);
+  animation: toastIn 0.4s var(--spring);
+}
+.secret-unlock-icon { font-size: 24px; flex-shrink: 0; }
+.secret-unlock-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.secret-unlock-desc { font-size: 12px; color: var(--text3); margin-top: 2px; font-style: italic; }
+
+/* Survival items in shop */
+.survival-item { position: relative; align-items: flex-start !important; padding: 14px 13px !important; }
+.survival-category-dot { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; margin-top: 6px; }
+.shop-scene-effect { font-size: 11px; color: var(--accent); margin-top: 3px; font-style: italic; }
+.next-item { border-color: var(--warm) !important; background: linear-gradient(90deg, var(--warm-dim), var(--glass)) !important; }
+.survival-buy-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.coins-needed { font-size: 11px; color: var(--warm); font-weight: 700; }
+.secret-item { border-color: #fcd34d !important; }
+.secret-item-icon { font-size: 20px; flex-shrink: 0; }
+.shop-item-icon { font-size: 22px; flex-shrink: 0; }
+
+/* Journal */
+.journal-view { padding: 0 14px 24px; }
+.journal-header { margin-bottom: 16px; }
+.journal-subtitle { font-size: 13px; color: var(--text3); margin-top: 3px; }
+.journal-entries { display: flex; flex-direction: column; gap: 2px; }
+.journal-entry {
+  padding: 14px 16px;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm); backdrop-filter: blur(12px);
+  border-left: 2px solid var(--accent-dim);
+}
+.journal-date {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text3); text-transform: uppercase; margin-bottom: 6px;
+}
+.journal-text {
+  font-size: 14px; color: var(--text2); line-height: 1.7;
+  font-style: italic;
+}
