@@ -67,10 +67,10 @@ function calcProjection(current, target, dailyRate) {
 }
 
 function fmtNum(n) {
-  if (!n && n !== 0) return '—';
+  if (n === null || n === undefined) return '—';
   if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
   if (n >= 1000) return (n/1000).toFixed(1)+'k';
-  return n.toLocaleString();
+  return Number(n).toLocaleString();
 }
 
 function dayLabel(ts) {
