@@ -1395,3 +1395,155 @@ input, select, textarea { font-family: inherit; color: var(--text); }
   font-size: 14px; color: var(--text2); line-height: 1.7;
   font-style: italic;
 }
+
+/* ══════════════════════════════════════════
+   MINISTER — COMPACT SUMMARY ROWS
+══════════════════════════════════════════ */
+.minister-summary-list {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 8px;
+}
+
+.minister-summary-row {
+  width: 100%; text-align: left;
+  display: flex; align-items: center;
+  padding: 11px 13px; border-radius: 12px;
+  background: rgba(255,255,255,0.3); border: 1px solid var(--glass-border);
+  cursor: pointer; transition: all 0.15s var(--spring);
+  position: relative; overflow: hidden;
+  flex-wrap: wrap;
+}
+@media (prefers-color-scheme: dark) {
+  .minister-summary-row { background: rgba(255,255,255,0.05); }
+}
+.minister-summary-row:active { transform: scale(0.98); background: var(--accent-dim); }
+
+.minister-summary-left {
+  flex: 1; display: flex; flex-direction: column; gap: 2px;
+}
+.minister-summary-account {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  color: var(--text3); text-transform: uppercase;
+}
+.minister-summary-pos {
+  font-size: 14px; font-weight: 600; color: var(--text);
+}
+.minister-summary-empty {
+  font-size: 13px; color: var(--text3); font-style: italic;
+}
+
+.minister-summary-right {
+  display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+}
+.minister-summary-countdown {
+  font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
+.minister-summary-countdown.active  { color: var(--sage); }
+.minister-summary-countdown.pending { color: var(--text2); }
+.minister-summary-expired { font-size: 12px; color: var(--text3); font-weight: 600; }
+.minister-summary-book {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+}
+.minister-summary-chevron {
+  font-size: 18px; color: var(--text3); margin-left: 2px;
+}
+
+/* Thin progress bar at bottom of active row */
+.minister-summary-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: rgba(0,0,0,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  .minister-summary-bar { background: rgba(255,255,255,0.06); }
+}
+.minister-summary-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--sage), #9dd4a8);
+  border-radius: 99px; transition: width 1s linear;
+}
+
+/* Expanded account panel */
+.minister-expanded-account {
+  display: flex; flex-direction: column; gap: 12px; margin-top: 8px;
+}
+.minister-expanded-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.minister-collapse-btn {
+  font-size: 12px; font-weight: 600; color: var(--text3);
+  background: none; border: none; cursor: pointer; padding: 4px 0;
+}
+.minister-text-cancel {
+  font-size: 13px; font-weight: 600; color: var(--text3);
+  background: none; border: none; cursor: pointer; padding: 8px 4px;
+  align-self: flex-start;
+}
+.minister-text-cancel:active { opacity: 0.6; }
+
+/* ══════════════════════════════════════════
+   BULK TASK INPUT
+══════════════════════════════════════════ */
+.task-input-multi {
+  resize: none; transition: height 0.15s ease, border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.5; overflow: hidden;
+}
+
+/* ══════════════════════════════════════════
+   MULTI-DAY EVENT TASKS
+══════════════════════════════════════════ */
+.bulk-task-input {
+  resize: vertical; min-height: 80px;
+  line-height: 1.6; font-size: 14px;
+}
+
+/* Day tabs */
+.day-tabs {
+  display: flex; gap: 5px; flex-wrap: wrap;
+  margin-bottom: 8px; overflow-x: auto;
+  padding-bottom: 2px; scrollbar-width: none;
+}
+.day-tabs::-webkit-scrollbar { display: none; }
+
+.day-tab {
+  padding: 5px 12px; border-radius: 99px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--glass-border); background: var(--glass);
+  color: var(--text2); cursor: pointer; white-space: nowrap;
+  transition: all 0.12s var(--spring); position: relative;
+  flex-shrink: 0;
+}
+.day-tab.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.day-tab:active { transform: scale(0.95); }
+
+.day-tab-dot {
+  display: inline-block; width: 5px; height: 5px;
+  border-radius: 99px; background: currentColor;
+  margin-left: 4px; opacity: 0.8; vertical-align: middle;
+}
+
+/* Event task sections */
+.event-daily-tasks { margin-top: 10px; }
+.event-tasks-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.event-edit-tasks-btn {
+  font-size: 12px; font-weight: 700; color: var(--accent);
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+.event-edit-tasks-btn:active { opacity: 0.6; }
+
+.event-tasks-view { display: flex; flex-direction: column; gap: 8px; }
+
+.event-day-tasks { }
+.event-day-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  color: var(--text3); text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.event-no-tasks {
+  font-size: 12px; color: var(--text3); font-style: italic; padding: 2px 0;
+}
+
+.edit-daily-tasks { display: flex; flex-direction: column; gap: 8px; }
